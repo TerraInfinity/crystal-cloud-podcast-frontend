@@ -18,28 +18,54 @@ import type { BlogPost } from '../types/blog';
 import axios, { AxiosError } from 'axios';
 import { useQuery } from '@tanstack/react-query';
 
+// Define the expected shape of the error response
+interface ErrorResponse {
+  message?: string;
+}
+
 export const HomePage = () => {
-  // Fetch blog posts using React Query with caching
-  const { data: blogs = [], isLoading, error } = useQuery<BlogPost[], AxiosError>({
-    queryKey: ['blogs'], // Unique key for caching this query
+  // Fetch blog posts using React Query with enhanced error handling
+  const { data: blogs = [], isLoading, error } = useQuery<BlogPost[], AxiosError<ErrorResponse>>({
+    queryKey: ['blogs'], // Unique key for caching
     queryFn: async () => {
-      const apiUrl = '/api/blogs/'; // Relative path to leverage proxy
-      const isDev = process.env.NODE_ENV === 'development'; // Check if in development mode
-      if (isDev) console.log('🚀 Sending request to:', apiUrl);
-      
-      const response = await axios.get<BlogPost[]>(apiUrl);
-      
-      if (isDev) console.log('✅ API Response:', {
-        status: response.status,
-        dataLength: Array.isArray(response.data) ? response.data.length : 'Not an array',
-        data: response.data
-      });
-      
-      return Array.isArray(response.data) ? response.data : []; // Ensure data is an array
+      try {
+        const apiUrl = '/api/blogs/'; // Relative path leveraging proxy
+        const isDev = process.env.NODE_ENV === 'development'; // Development mode check
+        if (isDev) console.log('🚀 Sending request to:', apiUrl);
+
+        const response = await axios.get<BlogPost[]>(apiUrl);
+
+        if (isDev) console.log('✅ API Response:', {
+          status: response.status,
+          dataLength: Array.isArray(response.data) ? response.data.length : 'Not an array',
+          data: response.data,
+        });
+
+        // Validate response data is an array; fallback to empty array if not
+        return Array.isArray(response.data) ? response.data : [];
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          // Log detailed Axios error info
+          console.error('Axios error:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+          });
+          throw error; // Pass to React Query for retry logic
+        } else {
+          console.error('Unexpected error:', error);
+          throw new Error('Failed to fetch blog posts');
+        }
+      }
+    },
+    retry: (failureCount, error) => {
+      // Retry up to 3 times, but not for 404 errors
+      if (error.response?.status === 404) return false;
+      return failureCount < 3;
     },
   });
 
-  // Display loading state with a spinner
+  // Display loading state with accessible spinner
   if (isLoading) {
     return (
       <div
@@ -71,17 +97,26 @@ export const HomePage = () => {
     );
   }
 
-  // Handle errors with specific messaging based on status
+  // Handle errors with specific user messages
   if (error) {
-    console.error('❌ Error fetching blogs:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status
-    });
-    const message =
-      error.response?.status === 404
-        ? 'Blog posts not found. Please try again later.'
-        : 'Oops, something went wrong. Please refresh the page.';
+    let message = 'Oops, something went wrong. Please refresh the page.';
+    if (error.response) {
+      // Server responded with an error status
+      if (error.response.status === 404) {
+        message = 'Blog posts not found. Please try again later.';
+      } else if (error.response.status >= 500) {
+        message = 'Server error. Please try again later.';
+      } else {
+        // Safely access error.response.data.message with fallback
+        message = `Error: ${error.response.status} - ${error.response.data?.message || error.message}`;
+      }
+    } else if (error.request) {
+      // No response received (network error)
+      message = 'Network error. Please check your internet connection and try again.';
+    } else {
+      // Other unexpected errors
+      message = `Error: ${error.message}`;
+    }
     return (
       <div id="error-message" role="alert">
         {message}
@@ -89,7 +124,7 @@ export const HomePage = () => {
     );
   }
 
-  // Render the layout with featured posts and blog grid
+  // Render the page with blog content
   return (
     <Layout title="The Bambi Cloud Podcast" id="home-page-layout">
       <div id="home-page-content">
