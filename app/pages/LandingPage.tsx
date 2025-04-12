@@ -13,6 +13,8 @@
  * @method handleDeny - Handles the denial of the disclaimer, sets a restriction in local storage, and navigates to the homepage.
  */
 import { useState } from "react";
+import type { JSX } from "react";
+
 import { useNavigate } from "react-router-dom";
 
 import Button from './components/LandingPage/LandingButton';
