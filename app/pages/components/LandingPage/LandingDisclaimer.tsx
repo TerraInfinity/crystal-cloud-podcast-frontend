@@ -31,9 +31,11 @@ const LandingDisclaimer = ({
       onClose={onClose}
       disclaimerText={
         <>
-          <h2 id="disclaimer-heading">Disclaimer</h2>
+          <span id="disclaimer-heading" style={{ fontSize: 'small', textShadow: '2px 2px 4px green' }}>
+            <em>"To believe in something, it must be true..."</em>
+          </span>
           <p id="disclaimer-text">
-            Disclaimer: Please Read Carefully Before Proceeding
+            Please Read Carefully Before Proceeding
             {/* Disclaimer content explaining the nature of the platform */}
             By accessing this platform, you acknowledge that the content contains
             mature, controversial, and morally complex themes, including
@@ -65,7 +67,7 @@ const LandingDisclaimer = ({
             self-awareness, recognizing that this is not a substitute for
             professional medical or psychological advice and is not clinically
             validated—approach with caution and critical thinking.
-            Freedom of expression is a cornerstone here. We assert that society’s
+            Freedom of expression is a cornerstone here. We assert that society's
             suppression of these topics, rather than their open exploration,
             perpetuates misunderstanding and harm. Healing and growth come from
             acknowledging and examining challenging truths, not silencing them. We
@@ -74,13 +76,13 @@ const LandingDisclaimer = ({
             sensitive topic through the lens of academia, with curiosity and
             critical analysis.
             The core essence of this platform is to provide an environment and
-            imaginative psychological system for the purpose of elevating one’s
+            imaginative psychological system for the purpose of elevating one's
             awareness, consciousness, and health. Our pure intention is to create
             a safe space for self-discovery, fostering the light of consciousness
             and grappling with the elusive nature of truth. If you believe this
             platform could better promote ethical, consensual, or healthy
             practices, we welcome constructive feedback. Our aim is to contribute
-            to a more compassionate, aware society. If you’re not prepared to
+            to a more compassionate, aware society. If you're not prepared to
             engage responsibly, please exit now.
             By proceeding, you confirm:
           </p>

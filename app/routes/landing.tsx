@@ -1,6 +1,5 @@
-//app\routes\home.tsx
-import type { Route } from "./+types/home";
-import { HomePage } from "../pages/HomePage";
+import type { Route } from "./+types/landing";
+import { LandingPage } from "../pages/LandingPage";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -9,6 +8,6 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export default function Home() {
-  return <HomePage />;
+export default function Landing() {
+  return <LandingPage />;
 }

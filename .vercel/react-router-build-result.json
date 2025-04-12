@@ -10,6 +10,7 @@
       }
     },
     "routeIdToServerBundleId": {
+      "routes/landing": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/home": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0"
     },
     "routes": {
@@ -18,6 +19,15 @@
         "id": "root",
         "file": "app/root.tsx",
         "config": {}
+      },
+      "routes/landing": {
+        "id": "routes/landing",
+        "parentId": "root",
+        "file": "app/routes/landing.tsx",
+        "index": true,
+        "config": {
+          "runtime": "nodejs"
+        }
       },
       "routes/home": {
         "id": "routes/home",
@@ -46,6 +56,12 @@
         "path": "",
         "id": "root",
         "file": "root.tsx"
+      },
+      "routes/landing": {
+        "id": "routes/landing",
+        "parentId": "root",
+        "file": "routes/landing.tsx",
+        "index": true
       },
       "routes/home": {
         "id": "routes/home",
