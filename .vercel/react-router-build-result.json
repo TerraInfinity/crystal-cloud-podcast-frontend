@@ -12,7 +12,13 @@
     "routeIdToServerBundleId": {
       "routes/landing": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/home": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
-      "routes/login": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0"
+      "routes/login": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/blogDetail": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/adminDashboard": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "pages/errors/RestrictedAccess": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "pages/errors/ServerError": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "pages/errors/UnauthorizedAccess": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "pages/errors/NotFound": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0"
     },
     "routes": {
       "root": {
@@ -44,6 +50,60 @@
         "parentId": "root",
         "file": "app/routes/login.tsx",
         "path": "login",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/blogDetail": {
+        "id": "routes/blogDetail",
+        "parentId": "root",
+        "file": "app/routes/blogDetail.tsx",
+        "path": "blogDetail",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/adminDashboard": {
+        "id": "routes/adminDashboard",
+        "parentId": "root",
+        "file": "app/routes/adminDashboard.tsx",
+        "path": "adminDashboard",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "pages/errors/RestrictedAccess": {
+        "id": "pages/errors/RestrictedAccess",
+        "parentId": "root",
+        "file": "app/pages/errors/RestrictedAccess.tsx",
+        "path": "restrictedAccess",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "pages/errors/ServerError": {
+        "id": "pages/errors/ServerError",
+        "parentId": "root",
+        "file": "app/pages/errors/ServerError.tsx",
+        "path": "serverError",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "pages/errors/UnauthorizedAccess": {
+        "id": "pages/errors/UnauthorizedAccess",
+        "parentId": "root",
+        "file": "app/pages/errors/UnauthorizedAccess.tsx",
+        "path": "unauthorizedAccess",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "pages/errors/NotFound": {
+        "id": "pages/errors/NotFound",
+        "parentId": "root",
+        "file": "app/pages/errors/NotFound.tsx",
+        "path": "*",
         "config": {
           "runtime": "nodejs"
         }
@@ -84,6 +144,42 @@
         "parentId": "root",
         "file": "routes/login.tsx",
         "path": "login"
+      },
+      "routes/blogDetail": {
+        "id": "routes/blogDetail",
+        "parentId": "root",
+        "file": "routes/blogDetail.tsx",
+        "path": "blogDetail"
+      },
+      "routes/adminDashboard": {
+        "id": "routes/adminDashboard",
+        "parentId": "root",
+        "file": "routes/adminDashboard.tsx",
+        "path": "adminDashboard"
+      },
+      "pages/errors/RestrictedAccess": {
+        "id": "pages/errors/RestrictedAccess",
+        "parentId": "root",
+        "file": "pages/errors/RestrictedAccess.tsx",
+        "path": "restrictedAccess"
+      },
+      "pages/errors/ServerError": {
+        "id": "pages/errors/ServerError",
+        "parentId": "root",
+        "file": "pages/errors/ServerError.tsx",
+        "path": "serverError"
+      },
+      "pages/errors/UnauthorizedAccess": {
+        "id": "pages/errors/UnauthorizedAccess",
+        "parentId": "root",
+        "file": "pages/errors/UnauthorizedAccess.tsx",
+        "path": "unauthorizedAccess"
+      },
+      "pages/errors/NotFound": {
+        "id": "pages/errors/NotFound",
+        "parentId": "root",
+        "file": "pages/errors/NotFound.tsx",
+        "path": "*"
       }
     },
     "serverBuildFile": "index.js",

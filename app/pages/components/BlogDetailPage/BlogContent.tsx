@@ -34,11 +34,6 @@ interface BlogContentProps {
   blog: Blog;
 }
 
-interface VideoPlayerProps {
-  videoUrl: string;
-  id?: string; // Optional, with ? since it may not always be provided
-}
-
 /**
  * BlogContent function component
  *
@@ -137,11 +132,5 @@ function BlogContent({ blog }: BlogContentProps): JSX.Element {
     </article>
   );
 }
-
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl, id }) => (
-  <div id={id}>
-    <video src={videoUrl} controls />
-  </div>
-);
 
 export default BlogContent;
