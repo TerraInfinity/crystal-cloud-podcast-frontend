@@ -1,14 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const frontendUrl = process.env.FRONTEND_URL;
-  const backendUrl = process.env.BACKEND_URL;
+  const frontendUrl = process.env.VITE_FRONTEND_URL;
+  const backendUrl = process.env.VITE_BACKEND_URL;
 
   if (!frontendUrl) {
-    return res.status(500).json({ error: 'FRONTEND_URL environment variable is not set' });
+    return res.status(500).json({ error: 'VITE_FRONTEND_URL environment variable is not set' });
   }
   if (!backendUrl) {
-    return res.status(500).json({ error: 'BACKEND_URL environment variable is not set' });
+    return res.status(500).json({ error: 'VITE_BACKEND_URL environment variable is not set' });
   }
 
   const origin = req.headers.origin === 'http://localhost:5173' ? 'http://localhost:5173' : frontendUrl;

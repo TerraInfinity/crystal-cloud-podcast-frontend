@@ -30,7 +30,7 @@ export const HomePage = () => {
     queryFn: async () => {
       try {
         const apiUrl = '/api/blogs/'; // Relative path leveraging proxy
-        const isDev = process.env.NODE_ENV === 'development'; // Development mode check
+        const isDev = import.meta.env.VITE_NODE_ENV === 'development'; // Development mode check
         if (isDev) console.log('🚀 Sending request to:', apiUrl);
 
         const response = await axios.get<BlogPost[]>(apiUrl);

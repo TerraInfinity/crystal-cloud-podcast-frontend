@@ -11,7 +11,8 @@
     },
     "routeIdToServerBundleId": {
       "routes/landing": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
-      "routes/home": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0"
+      "routes/home": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/login": "nodejs_eyJydW50aW1lIjoibm9kZWpzIn0"
     },
     "routes": {
       "root": {
@@ -34,6 +35,15 @@
         "parentId": "root",
         "file": "app/routes/home.tsx",
         "path": "home",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/login": {
+        "id": "routes/login",
+        "parentId": "root",
+        "file": "app/routes/login.tsx",
+        "path": "login",
         "config": {
           "runtime": "nodejs"
         }
@@ -68,6 +78,12 @@
         "parentId": "root",
         "file": "routes/home.tsx",
         "path": "home"
+      },
+      "routes/login": {
+        "id": "routes/login",
+        "parentId": "root",
+        "file": "routes/login.tsx",
+        "path": "login"
       }
     },
     "serverBuildFile": "index.js",

@@ -3,7 +3,7 @@ import { FaComments } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import type { BlogPost } from '../../../types/blog';
-
+import { logGroupedMessage } from '../../../utils/consoleGroupLogger'; // Adjust path if needed
 /**
  * BlogPostCard component displays a blog post with its details including title, author, date, and media.
  * Assumes that the post is visible to the user based on backend filtering of posts according to user preferences.
@@ -34,11 +34,44 @@ const BlogPostCard = ({ blog }: { blog: BlogPost }) => {
   // Default image based on age restriction
   const defaultImage = isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg';
 
-  // Construct author object with fallbacks
-  const author = {
-    name: authorName || 'Unknown Author',
-    logo: authorLogo || placeholderLogo,
+  // Normalize authorLogo to ensure it's an absolute URL
+  const normalizedAuthorLogo = authorLogo && !authorLogo.match(/^https?:\/\//) ? `https://${authorLogo}` : authorLogo;
+
+  // State for logo URL
+  const [logoUrl, setLogoUrl] = useState<string>(placeholderLogo);
+
+  // Function to check if an image URL exists using Image object
+  const checkImageExists = (url: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);  // Image loaded successfully
+      img.onerror = () => resolve(false); // Image failed to load (e.g., 404)
+      img.src = url;
+    });
   };
+
+  // Effect to verify and set logo URL
+  useEffect(() => {
+    if (normalizedAuthorLogo) {
+      checkImageExists(normalizedAuthorLogo).then((exists) => {
+        if (exists) {
+          setLogoUrl(normalizedAuthorLogo);
+        } else {
+          logGroupedMessage(
+            'Author Logo Issues',
+            `Author logo at "${normalizedAuthorLogo}" could not be found for blog post "${title}" (ID: ${id}). Defaulting to placeholder logo: ${placeholderLogo}`
+          );
+          setLogoUrl(placeholderLogo);
+        }
+      });
+    } else {
+      logGroupedMessage(
+        'Author Logo Issues',
+        `No valid author logo provided for blog post "${title}" (ID: ${id}). Defaulting to placeholder logo: ${placeholderLogo}`
+      );
+      setLogoUrl(placeholderLogo);
+    }
+  }, [normalizedAuthorLogo, placeholderLogo, id, title]);
 
   // Determine media type and color
   const mediaType = videoUrl && audioUrl ? 'Audio/Video' : videoUrl ? 'Video' : audioUrl ? 'Audio' : null;
@@ -58,34 +91,48 @@ const BlogPostCard = ({ blog }: { blog: BlogPost }) => {
       } else {
         setFetchType('other');
       }
+    } else if (blogImage && blogImage !== '/assets/images/logo.png') {
+      setImgSrc(blogImage);
     } else {
-      setImgSrc(blogImage || defaultImage);
+      setImgSrc(defaultImage);
     }
   }, [videoUrl, blogImage, defaultImage]);
 
-  // Effect to fetch thumbnails for non-YouTube videos
-  useEffect(() => {
-    if (fetchType === 'other' && videoUrl) {
-      const mode = import.meta.env.VITE_NODE_ENV || 'development';
-      let apiUrl;
-      if (mode === 'local-development') {
-        const apiPort = process.env.REACT_APP_BACKEND_PORT || '5000';
-        apiUrl = `${window.location.protocol}//${window.location.hostname}:${apiPort}/api/`;
-      } else {
-        apiUrl = '/api/';
+    // Effect to fetch thumbnails for non-YouTube videos
+    useEffect(() => {
+      if (fetchType === 'other' && videoUrl) {
+        const logPrefix = `[Thumbnail Fetch - ${new Date().toISOString()}] [Blog Title: ${title}]`;
+        //console.log(`${logPrefix} Starting thumbnail fetch for videoUrl:`, videoUrl);
+        
+        // Determine the API URL based on the environment variable
+        const apiUrl = import.meta.env.VITE_VERCEL_ENV === 'true' 
+          ? import.meta.env.VITE_FRONTEND_URL 
+          : import.meta.env.VITE_LOCALHOST_URL;
+        const fullUrl = `${apiUrl}/api/proxy-thumbnail?url=${encodeURIComponent(videoUrl)}`;
+        //console.log(`${logPrefix} Constructed API URL:`, fullUrl);
+  
+        axios
+          .get(fullUrl)
+          .then((response) => {
+            const thumbnail = response.data.thumbnail;
+            // Group for received thumbnail messages
+            //logGroupedMessage('Thumbnail Received', `${logPrefix} Received thumbnail: ${thumbnail}`);
+            const finalImgSrc = thumbnail || blogImage || defaultImage;
+            // Log with white color
+            //logGroupedMessage('Image Source Update', `${logPrefix} Setting imgSrc to: ${finalImgSrc}`, 'white', false);
+            setImgSrc(finalImgSrc);
+          })
+          .catch((error) => {
+            const errorMsg = error.response?.data?.error || error.message;
+           // console.error(`${logPrefix} Failed to fetch thumbnail:`, { videoUrl, error: errorMsg, status: error.response?.status });
+            const fallbackImgSrc = blogImage || defaultImage;
+            // Group for fallback image source messages
+            logGroupedMessage('Fallback Image Source', `${logPrefix} Falling back to imgSrc: ${fallbackImgSrc}`, 'yellow', true);
+            //console.log(`${logPrefix} Falling back to imgSrc:`, fallbackImgSrc);
+            setImgSrc(fallbackImgSrc);
+          });
       }
-      const fullUrl = `${apiUrl}proxy-thumbnail?url=${encodeURIComponent(videoUrl)}`;
-      axios
-        .get(fullUrl)
-        .then((response) => {
-          const thumbnail = response.data.thumbnail;
-          setImgSrc(thumbnail || blogImage || defaultImage);
-        })
-        .catch(() => {
-          setImgSrc(blogImage || defaultImage);
-        });
-    }
-  }, [fetchType, videoUrl, blogImage, defaultImage]);
+    }, [fetchType, videoUrl, blogImage, defaultImage]);
 
   // Handle image loading errors
   const handleImageError = () => {
@@ -122,14 +169,14 @@ const BlogPostCard = ({ blog }: { blog: BlogPost }) => {
         </h3>
         <div className="flex items-center mb-2" id={`author-info-container-${id}`}>
           <img
-            src={author.logo}
+            src={logoUrl}
             alt="Author logo"
             className="w-10 h-10 rounded-full object-cover mr-3"
             id={`author-logo-${id}`}
           />
           <div>
             <div className="text-white truncate" id={`author-name-${id}`}>
-              {author.name}
+              {authorName || 'Unknown Author'}
             </div>
             <div className="text-gray-400 text-sm" id={`blog-date-${id}`}>
               {new Date(createdAt).toLocaleDateString()}

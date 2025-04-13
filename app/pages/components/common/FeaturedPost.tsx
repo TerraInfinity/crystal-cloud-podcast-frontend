@@ -4,11 +4,11 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../../types/blog'; // Use type-only import for BlogPost
 
+// Utility for grouped logging (assume this exists in your project)
+import { logGroupedMessage } from '../../../utils/consoleGroupLogger'; // Adjust path as needed
+
 /**
  * Interface for FeaturedPost component props.
- *
- * @interface FeaturedPostProps
- * @property {BlogPost[]} blogs - An array of blog post objects to be displayed in the carousel.
  */
 interface FeaturedPostProps {
   id: string;
@@ -17,9 +17,6 @@ interface FeaturedPostProps {
 
 /**
  * Determines the media type and color based on the blog's video and audio URLs.
- *
- * @param {BlogPost} blog - The blog post object.
- * @returns {{ type: string | null; color: string }} An object containing the media type and its corresponding color.
  */
 const getMediaTag = (blog: BlogPost): { type: string | null; color: string } => {
   const hasVideo = blog.videoUrl && blog.videoUrl.trim() !== '';
@@ -32,9 +29,6 @@ const getMediaTag = (blog: BlogPost): { type: string | null; color: string } => 
 
 /**
  * Maps the pathId to a TailwindCSS background color class.
- *
- * @param {string} pathId - The path ID of the blog.
- * @returns {string} The TailwindCSS class for the background color.
  */
 const getPathColor = (pathId: string): string => {
   if (!pathId) return 'bg-gray-500';
@@ -53,9 +47,6 @@ const getPathColor = (pathId: string): string => {
 
 /**
  * Extracts the YouTube video ID from a given URL.
- *
- * @param {string} url - The YouTube video URL.
- * @returns {string | null} The YouTube video ID or null if not found.
  */
 const getYouTubeID = (url: string): string | null => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -64,37 +55,78 @@ const getYouTubeID = (url: string): string | null => {
 };
 
 /**
+ * Checks if an image URL exists using the Image object.
+ */
+const checkImageExists = (url: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+};
+
+/**
  * FeaturedPost Component
- *
- * A carousel component that displays featured blog posts. It fetches thumbnails for videos,
- * handles automatic and manual navigation through the posts, and displays relevant information
- * such as the author, creation date, and media tags.
- *
- * @component
- * @param {Object} props - The component props.
- * @param {BlogPost[]} props.blogs - An array of blog post objects to be displayed in the carousel.
- * @returns {JSX.Element | null} The rendered featured post carousel or null if no blogs are provided.
- *
- * @example
- * <FeaturedPost blogs={blogsArray} />
  */
 const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
-  const placeholderLogo = '/assets/images/logo.png';
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+  const [logoUrls, setLogoUrls] = useState<Record<string, string>>({});
 
+  // Determine the base URL for placeholderLogo
+  const isVercelEnv = import.meta.env.VITE_VERCEL_ENV === 'true';
+  let baseUrl: string;
+  if (isVercelEnv) {
+    baseUrl = import.meta.env.VITE_FRONTEND_URL!;
+  } else {
+    baseUrl = import.meta.env.VITE_LOCALHOST_URL!;
+  }
+  if (!baseUrl) {
+    throw new Error("baseUrl is undefined. Ensure URL environment variables are set.");
+  }
+  const placeholderLogo = `${baseUrl}/assets/images/logo.png`;
+
+  // Preload author logos
+  useEffect(() => {
+    const preloadLogos = async () => {
+      const logoPromises = blogs.map(async (blog) => {
+        const normalizedAuthorLogo = blog.authorLogo && !blog.authorLogo.match(/^https?:\/\//)
+          ? `https://${blog.authorLogo}`
+          : blog.authorLogo;
+        if (!normalizedAuthorLogo) {
+          logGroupedMessage(
+            'Author Logo Issues',
+            `No valid author logo for blog "${blog.title}" (ID: ${blog.id}). Using placeholder: ${placeholderLogo}`
+          );
+          return { id: blog.id, logo: placeholderLogo };
+        }
+        const exists = await checkImageExists(normalizedAuthorLogo);
+        if (exists) {
+          return { id: blog.id, logo: normalizedAuthorLogo };
+        } else {
+          logGroupedMessage(
+            'Author Logo Issues',
+            `Logo at "${normalizedAuthorLogo}" not found for blog "${blog.title}" (ID: ${blog.id}). Using placeholder: ${placeholderLogo}`
+          );
+          return { id: blog.id, logo: placeholderLogo };
+        }
+      });
+      const logoResults = await Promise.all(logoPromises);
+      const newLogoUrls = logoResults.reduce((acc, { id, logo }) => {
+        acc[id] = logo;
+        return acc;
+      }, {} as Record<string, string>);
+      setLogoUrls(newLogoUrls);
+    };
+    preloadLogos();
+  }, [blogs, placeholderLogo]);
+
+  // Fetch thumbnails (unchanged)
   useEffect(() => {
     const fetchThumbnails = async () => {
-      const mode = import.meta.env.VITE_NODE_ENV || 'development';
-      let apiUrl;
-      if (mode === 'local-development') {
-        const apiPort = import.meta.env.VITE_BACKEND_PORT || '5000';
-        apiUrl = `${window.location.protocol}//${window.location.hostname}:${apiPort}/api/`;
-      } else {
-        apiUrl = '/api/';
-      }
-
+      const apiUrl = `${import.meta.env.VITE_BACKEND_URL || 'https://backend.terrainfinity.ca'}/api/`;
       const newThumbnails: Record<string, string> = {};
       if (!Array.isArray(blogs)) return;
       for (const blog of blogs) {
@@ -123,6 +155,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
     fetchThumbnails();
   }, [blogs, thumbnails]);
 
+  // Carousel interval (unchanged)
   useEffect(() => {
     if (blogs.length > 0 && !isPaused) {
       const interval = setInterval(() => {
@@ -132,12 +165,8 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
     }
   }, [blogs, isPaused]);
 
-  if (!Array.isArray(blogs)) {
-    console.error('FeaturedPost received invalid blogs prop:', blogs);
-    return null;
-  }
-
-  if (blogs.length === 0) {
+  if (!Array.isArray(blogs) || blogs.length === 0) {
+    console.error('FeaturedPost received invalid or empty blogs prop:', blogs);
     return null;
   }
 
@@ -153,6 +182,13 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   const handleDotClick = (index: number) => {
     setCurrentIndex(index);
     setIsPaused(true);
+  };
+
+  const handleLogoError = (blogId: string) => {
+    setLogoUrls((prev) => ({
+      ...prev,
+      [blogId]: placeholderLogo,
+    }));
   };
 
   return (
@@ -215,9 +251,10 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
           <div className="flex flex-wrap items-center space-x-2 min-w-0 gap-2" id="featured-post-author-info">
             <img
               id="featured-post-author-avatar"
-              src={currentBlog.authorLogo || placeholderLogo}
+              src={logoUrls[currentBlog.id] || placeholderLogo}
               alt={currentBlog.authorName || 'Author'}
               className="w-8 h-8 rounded-full flex-shrink-0"
+              onError={() => handleLogoError(currentBlog.id)}
             />
             <div className="max-w-fit bg-green-500 rounded p-1" id="featured-post-author-name">
               {currentBlog.authorName || 'Unknown Author'}
