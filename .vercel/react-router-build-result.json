@@ -33,7 +33,7 @@
         "id": "routes/home",
         "parentId": "root",
         "file": "app/routes/home.tsx",
-        "index": true,
+        "path": "home",
         "config": {
           "runtime": "nodejs"
         }
@@ -67,7 +67,7 @@
         "id": "routes/home",
         "parentId": "root",
         "file": "routes/home.tsx",
-        "index": true
+        "path": "home"
       }
     },
     "serverBuildFile": "index.js",

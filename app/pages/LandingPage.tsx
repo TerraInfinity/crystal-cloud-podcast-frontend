@@ -12,7 +12,7 @@
  * @method handleAccept - Handles the acceptance of the disclaimer and navigates to the homepage.
  * @method handleDeny - Handles the denial of the disclaimer, sets a restriction in local storage, and navigates to the homepage.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { JSX } from "react";
 
 import { useNavigate } from "react-router-dom";
@@ -25,6 +25,11 @@ import LandingDisclaimer from './components/LandingPage/LandingDisclaimer';
 export const LandingPage = (): JSX.Element => {
   const navigate = useNavigate();
   const [isDisclaimerOpen, setDisclaimerOpen] = useState<boolean>(false);
+  const [isClient, setIsClient] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleAccept = (): void => {
     console.log("Disclaimer accepted. Navigating to homepage...");
@@ -63,15 +68,17 @@ export const LandingPage = (): JSX.Element => {
         </p>
         <br />
         <p className="text-xs text-white">On a more serious note... <a href="https://youtu.be/UfBso0Y4ETI" target="_blank" rel="noopener noreferrer" className="underline hover:text-stone-400">Click</a>.</p>
-        <LandingDisclaimer 
-          isOpen={isDisclaimerOpen} 
-          onAccept={handleAccept} 
-          onDeny={handleDeny} 
-          onClose={() => {
-            console.log("Closing disclaimer modal...");
-            setDisclaimerOpen(false);
-          }} 
-        />
+        {isClient && (
+          <LandingDisclaimer 
+            isOpen={isDisclaimerOpen} 
+            onAccept={handleAccept} 
+            onDeny={handleDeny} 
+            onClose={() => {
+              console.log("Closing disclaimer modal...");
+              setDisclaimerOpen(false);
+            }} 
+          />
+        )}
       </div>
     </div>
   );

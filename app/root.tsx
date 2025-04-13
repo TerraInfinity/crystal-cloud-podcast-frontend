@@ -1,23 +1,17 @@
-import {
-  isRouteErrorResponse,
-  Links,
-  Meta,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-} from "react-router";
-import React from "react"; // For React.ReactNode type
+//app\root.tsx
+import "./app.css"; // Importing global styles
+import { isRouteErrorResponse, Outlet, Links, Meta, Scripts, ScrollRestoration } from "react-router-dom";
+import React, { useEffect, useRef } from "react";
 import type { Route } from "./+types/root";
-import "./app.css";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // Added imports for QueryClient
 
-// Log when the module is loaded to confirm file execution
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 console.log("Root module loaded");
 
 // Create a QueryClient instance
 const queryClient = new QueryClient();
 
-// Define link preloaders for fonts
+// Define and export the links function
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
@@ -31,56 +25,62 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
-// Layout component providing HTML structure and QueryClientProvider for the app
-export function Layout({ children }: { children: React.ReactNode }) {
-  console.log("Rendering Layout"); // Log to track Layout rendering
+// Single Layout instance with debugging
+function Layout({ children }: { children: React.ReactNode }) {
+  const instanceId = useRef(Math.random().toString(36).slice(2)); // Unique ID per instance
+  useEffect(() => {
+    console.log(`Layout mounted (ID: ${instanceId.current})`);
+    return () => console.log(`Layout unmounted (ID: ${instanceId.current})`);
+  }, []);
+  console.log(`Rendering Layout (ID: ${instanceId.current})`);
   return (
     <html lang="en">
-      {/* Meta Manages head metadata */}
-      {/* Links Injects link tags from links function */}
-      <head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><Meta /><Links /></head>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <Meta />
+        <Links />
+      </head>
       <body>
-        <QueryClientProvider client={queryClient}> {/* Wrap children with QueryClientProvider */}
-          {children} {/* Renders child components, e.g., route components */}
+        <QueryClientProvider client={queryClient}>
+          {children}
         </QueryClientProvider>
-        <ScrollRestoration /> {/* Restores scroll position on navigation */}
-        <Scripts /> {/* Injects client-side scripts */}
+        <ScrollRestoration />
+        <Scripts />
       </body>
     </html>
   );
 }
 
-// Root App component that wraps Outlet with Layout
+// Single App instance
 export default function App() {
-  console.log("Rendering App"); // Log to track App rendering
+  useEffect(() => {
+    console.log("App mounted");
+  }, []);
+  console.log("Rendering App");
   return (
     <Layout>
-      <Outlet /> {/* Renders matched route components */}
+      <Outlet />
     </Layout>
   );
 }
 
-// Enhanced ErrorBoundary for detailed error reporting
+// New ErrorBoundary function
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  console.error("Error caught in ErrorBoundary:", error); // Log error details to console
-
+  console.error("Error caught in ErrorBoundary:", error);
   let message = "Oops!";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;
-
   if (isRouteErrorResponse(error)) {
-    // Handle route-specific errors (e.g., 404)
     message = error.status === 404 ? "404" : "Error";
     details =
       error.status === 404
         ? "The requested page could not be found."
         : error.statusText || details;
   } else if (error instanceof Error) {
-    // Handle general JavaScript errors
     details = error.message;
-    stack = error.stack; // Include stack trace in all environments for debugging
+    stack = error.stack;
   }
-
   return (
     <main className="pt-16 p-4 container mx-auto">
       <h1>{message}</h1>

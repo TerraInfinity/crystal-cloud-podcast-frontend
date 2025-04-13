@@ -1,3 +1,4 @@
+// vite.config.ts
 import { reactRouter } from "@react-router/dev/vite";
 import autoprefixer from "autoprefixer";
 import tailwindcss from "tailwindcss";

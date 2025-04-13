@@ -1,3 +1,4 @@
+//app\routes\landing.tsx
 import type { Route } from "./+types/landing";
 import { LandingPage } from "../pages/LandingPage";
 
