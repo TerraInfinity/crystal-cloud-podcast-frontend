@@ -36,15 +36,9 @@ const Menu: React.FC<MenuProps> = ({ isOpen }) => {
    */
   const fetchRandomBlog = async (): Promise<number | null> => {
     try {
-      const mode = import.meta.env.VITE_NODE_ENV || 'development';
-      let apiUrl;
-
-      if (mode === 'local-development') {
-        const apiPort = import.meta.env.VITE_BACKEND_PORT || '5000';
-        apiUrl = `${window.location.protocol}//${window.location.hostname}:${apiPort}/api/blogs`;
-      } else {
-        apiUrl = '/api/blogs';
-      }
+      const apiUrl = import.meta.env.VITE_VERCEL_ENV === 'true' 
+        ? `${import.meta.env.VITE_FRONTEND_URL}/api/blogs` 
+        : `${import.meta.env.VITE_LOCALHOST_URL}/api/blogs`;
 
       console.debug(apiUrl);
 
