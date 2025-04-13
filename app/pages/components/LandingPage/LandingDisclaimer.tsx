@@ -30,7 +30,7 @@ const LandingDisclaimer = ({
       isOpen={isOpen}
       onClose={onClose}
       disclaimerText={
-        <>
+        <div className="disclaimer-content"> {/* Replaced Fragment with div */}
           <span id="disclaimer-heading" style={{ fontSize: 'small', textShadow: '2px 2px 4px green' }}>
             <em>"To believe in something, it must be true..."</em>
           </span>
@@ -89,10 +89,10 @@ const LandingDisclaimer = ({
           <p>You are of legal age in your jurisdiction.</p>
           <p>You consent to viewing this content.</p>
           <p>You assume full responsibility for your experience.</p>
-        </>
+        </div>
       }
       onAccept={onAccept}
-      onDecline={onDeny}
+      onDecline={onDeny} // Changed to onDecline to match LandingDisclaimerModal prop
       onLearnMore={() => {
         console.log('Learn more clicked');
         // Optionally, implement additional logic here, such as navigating to a page with more information
