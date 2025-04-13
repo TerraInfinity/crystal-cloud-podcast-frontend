@@ -10,7 +10,7 @@ export default [
   route("restrictedAccess", "pages/errors/RestrictedAccess.tsx"),  // Rendered at /403
   route("serverError", "pages/errors/ServerError.tsx"),  // Rendered at /500
   route("unauthorizedAccess", "pages/errors/UnauthorizedAccess.tsx"),  // Rendered at /401
-  route("*", "pages/errors/NotFound.tsx"),  // Catch-all route for non-existent pages
+  //route("*", "pages/errors/NotFound.tsx"),  // Catch-all route for non-existent pages
 
 ] satisfies RouteConfig;
 
