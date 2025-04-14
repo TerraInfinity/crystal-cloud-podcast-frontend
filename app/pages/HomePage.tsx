@@ -26,28 +26,27 @@ interface ErrorResponse {
 export const HomePage = () => {
   // Fetch blog posts using React Query with enhanced error handling
   const { data: blogs = [], isLoading, error } = useQuery<BlogPost[], AxiosError<ErrorResponse>>({
-    queryKey: ['blogs'], // Unique key for caching
+    queryKey: ['blogs'],
     queryFn: async () => {
       try {
-        const apiUrl = '/api/blogs/';
-        console.log('Sending request to:', apiUrl);
+        const apiUrl = '/api/blogs/'; // Keep relative path for proxy
+        console.log('Sending request to:', apiUrl, 'with VITE_BACKEND_URL:', process.env.VITE_BACKEND_URL);
 
         const response = await axios.get<BlogPost[]>(apiUrl, {
           headers: {
             Accept: 'application/json',
-            // Remove Accept-Encoding to let browser negotiate compression
           },
-          timeout: 10000, // 10s timeout
+          timeout: 10000,
         });
 
         console.log('✅ Response received:', {
           status: response.status,
           contentType: response.headers['content-type'],
           contentEncoding: response.headers['content-encoding'] || 'none',
+          corsHeader: response.headers['access-control-allow-origin'] || 'Not set',
           dataLength: Array.isArray(response.data) ? response.data.length : 'Not an array',
         });
 
-        // Validate response data is an array
         if (!Array.isArray(response.data)) {
           console.error('🛑 Expected array, got:', response.data);
           throw new Error('Invalid response format: expected an array of blog posts');
@@ -61,9 +60,11 @@ export const HomePage = () => {
             code: error.code,
             status: error.response?.status,
             headers: error.response?.headers || 'No response headers',
+            corsHeader: error.response?.headers?.['access-control-allow-origin'] || 'Not set',
             requestHeaders: error.config?.headers,
             requestUrl: error.config?.url,
             isNetworkError: !error.response,
+            cause: error.cause?.message || 'Unknown cause',
           });
           throw error;
         }
@@ -72,7 +73,6 @@ export const HomePage = () => {
       }
     },
     retry: (failureCount, error) => {
-      // Allow retries for network errors or 5xx status codes, up to 3 attempts
       if (error instanceof AxiosError) {
         return (
           failureCount < 3 &&
@@ -81,10 +81,10 @@ export const HomePage = () => {
       }
       return false;
     },
-    staleTime: 5 * 60 * 1000, // Cache data for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Display loading state with accessible spinner
+  // Display loading state
   if (isLoading) {
     return (
       <div
@@ -116,33 +116,33 @@ export const HomePage = () => {
     );
   }
 
-  // Handle errors with specific user messages
+  // Handle errors
   if (error) {
     let message = 'Oops, something went wrong. Please refresh the page.';
     if (error.response) {
       console.error('Error response:', {
         status: error.response.status,
         headers: error.response.headers,
+        corsHeader: error.response.headers?.['access-control-allow-origin'] || 'Not set',
       });
       if (error.response.status === 404) {
         message = 'Blog posts not found. Please try again later.';
       } else if (error.response.status >= 500) {
         message = 'Server error. Please try again later.';
+      } else if (error.response.status === 403) {
+        message = 'Access denied. This may be due to a server configuration issue.';
       } else {
         message = `Error: ${error.response.status} - ${
           error.response.data?.message || error.message
         }`;
       }
-    } else if (!error.response) {
+    } else {
       console.error('Network error:', {
         message: error.message,
         code: error.code,
         requestUrl: error.config?.url,
       });
-      message = 'Network error. Please check your internet connection and try again.';
-    } else {
-      console.error('Setup error:', error.message);
-      message = `Error: ${error.message}`;
+      message = 'Unable to connect to the server. This may be a configuration issue with the server. Please try again later.';
     }
     return (
       <div id="error-message" role="alert" aria-live="assertive">
@@ -151,7 +151,7 @@ export const HomePage = () => {
     );
   }
 
-  // Render the page with blog content
+  // Render the page
   return (
     <Layout title="The Bambi Cloud Podcast" id="home-page-layout">
       <div id="home-page-content">
