@@ -14,53 +14,23 @@ const allowedOrigins = [
   'http://localhost',
 ].filter(Boolean);
 
-async function sendLog(level: string, message: string, data: object) {
-  try {
-    await axios.post(
-      'https://logs.terrainfinity.ca/api/frontend-log', 
-      {
-        message,
-        level,
-        data,
-      },
-      {
-        headers: {
-          'x-api-key': 'ebfb7ff0-g2f6-r1c8-ief3-nfba17be410c',
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-  } catch (logError) {
-    let errorMessage = 'Unknown error';
-    if (logError instanceof Error) {
-      errorMessage = logError.message;
-    } else if (typeof logError === 'string') {
-      errorMessage = logError;
-    } else {
-      errorMessage = String(logError);
-    }
-    console.error('Failed to send log to log server:', errorMessage);
-  }
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  await sendLog('info', 'Proxy request started', {
+  // Log incoming request details
+  console.log('Incoming request:', {
     method: req.method,
     url: req.url,
     headers: req.headers,
   });
-  console.log('Incoming request:', { method: req.method, url: req.url, headers: req.headers });
 
   const frontendUrl = process.env.VITE_FRONTEND_URL;
   const backendUrl = process.env.VITE_BACKEND_URL;
 
+  // Check environment variables
   if (!frontendUrl) {
-    await sendLog('error', 'Missing VITE_FRONTEND_URL', {});
     console.error('Missing VITE_FRONTEND_URL');
     return res.status(500).json({ error: 'VITE_FRONTEND_URL environment variable is not set' });
   }
   if (!backendUrl) {
-    await sendLog('error', 'Missing VITE_BACKEND_URL', {});
     console.error('Missing VITE_BACKEND_URL');
     return res.status(500).json({ error: 'VITE_BACKEND_URL environment variable is not set' });
   }
@@ -69,11 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const origin = !isVercel && req.headers.origin && allowedOrigins.includes(req.headers.origin)
     ? req.headers.origin
     : frontendUrl;
-  await sendLog('info', 'Determined origin', { origin });
   console.log('Determined origin:', origin);
 
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    await sendLog('info', 'Handling OPTIONS request', {});
     console.log('Handling OPTIONS request');
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
@@ -85,84 +54,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const targetUrl = `${backendUrl}${req.url?.replace(/^\/api/, '/api') || ''}`;
   console.log('Target URL:', targetUrl);
 
+  // Prepare headers for backend request
   const backendHeaders = {
     ...Object.fromEntries(
       Object.entries(req.headers).filter(([key]) => !key.startsWith('x-vercel-'))
     ),
     host: new URL(backendUrl).host,
   };
-  await sendLog('info', 'Making backend request', {
-    targetUrl,
-    method: req.method,
-    headers: backendHeaders,
-  });
   console.log('Headers sent to backend:', backendHeaders);
 
   try {
-    const response = await fetch(targetUrl, {
+    // Make the backend request using axios
+    const response = await axios({
       method: req.method,
+      url: targetUrl,
       headers: backendHeaders,
-      body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined,
+      data: req.method !== 'GET' && req.method !== 'HEAD' ? req.body : undefined,
     });
 
+    // Log backend response details
     const responseHeaders = response.headers;
-    const dataSnippet = response.ok 
-      ? await response.text().then(text => text.substring(0, 100)) 
-      : 'Error response';
-    await sendLog('info', 'Received backend response', {
-      status: response.status,
-      headers: Object.fromEntries(responseHeaders.entries()),
-      contentType: responseHeaders.get('content-type') || 'Not set',
-      contentEncoding: responseHeaders.get('content-encoding') || 'none',
-      dataSnippet,
-    });
     console.log('Backend response:', {
       status: response.status,
-      headers: Object.fromEntries(responseHeaders.entries()),
-      contentType: responseHeaders.get('content-type') || 'Not set',
-      contentEncoding: responseHeaders.get('content-encoding') || 'none',
+      headers: responseHeaders,
+      contentType: responseHeaders['content-type'] || 'Not set',
+      contentEncoding: responseHeaders['content-encoding'] || 'none',
     });
 
+    // Set CORS headers for the client
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 
+    // Pass through all headers from backend
     res.status(response.status);
-    for (const [key, value] of responseHeaders.entries()) {
+    for (const [key, value] of Object.entries(responseHeaders)) {
       console.log(`Setting response header: ${key}: ${value}`);
       res.setHeader(key, value);
     }
 
-    const responseData = response.ok ? await response.json() : { error: 'Error response' };
-    res.send(responseData);
+    // Send raw response body
+    res.send(response.data);
   } catch (error) {
-    let errorMessage = 'Unknown error';
-    let errorStack = 'No stack trace';
-
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      errorStack = error.stack || 'No stack trace';
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-    } else {
-      errorMessage = String(error);
-    }
-
-    await sendLog('error', 'Proxy error occurred', {
-      message: errorMessage,
-      stack: errorStack,
-      targetUrl,
-      requestHeaders: backendHeaders,
-    });
+    // Detailed error logging
     console.error('Proxy error occurred:', {
-      message: errorMessage,
-      stack: errorStack,
+      message: (error as Error).message,
+      stack: (error as Error).stack,
       targetUrl,
       requestHeaders: backendHeaders,
     });
     res.status(500).json({
       error: 'Failed to proxy request',
-      details: errorMessage,
+      details: (error as Error).message,
     });
   }
 }
