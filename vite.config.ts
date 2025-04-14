@@ -26,6 +26,13 @@ export default defineConfig({
           proxy.on('proxyReq', (proxyReq, req, res) => {
             proxyReq.setHeader('Accept-Encoding', 'identity');
           });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            Object.keys(proxyRes.headers).forEach((key) => {
+              if (key.toLowerCase() === 'content-encoding') {
+                delete proxyRes.headers[key];
+              }
+            });
+          });
         },
       },
     },
