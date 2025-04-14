@@ -2,6 +2,7 @@
  * app\pages\HomePage.tsx
  * The main home page component that displays featured posts and a grid of blog posts.
  * It fetches blog data from the backend API using React Query for caching and state management.
+ * Renders the page layout even if the API request fails, displaying an error message when needed.
  *
  * @component
  * @returns {JSX.Element} The rendered home page component.
@@ -24,7 +25,7 @@ interface ErrorResponse {
 }
 
 export const HomePage = () => {
-  // Debug environment variables
+  // Debug environment variables (optional, consider removing in production)
   console.log('Environment:', {
     VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'undefined',
     VITE_FRONTEND_URL: import.meta.env.VITE_FRONTEND_URL || 'undefined',
@@ -36,10 +37,10 @@ export const HomePage = () => {
     queryKey: ['blogs'],
     queryFn: async () => {
       try {
-        const apiUrl = '/api/blogs/'; // Rely on vercel.json rewrite to /api/proxy
+        const apiUrl = '/api/blogs/';
         console.log('Sending request to:', apiUrl);
 
-        const response = await axios.get<BlogPost[]>(apiUrl); // Simplified Axios call, no headers or timeout
+        const response = await axios.get<BlogPost[]>(apiUrl);
 
         console.log('✅ Response received:', {
           status: response.status,
@@ -90,41 +91,9 @@ export const HomePage = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Display loading state
-  if (isLoading) {
-    return (
-      <div
-        id="loading-message"
-        className="flex justify-center items-center h-screen"
-        aria-live="polite"
-      >
-        <svg
-          className="animate-spin h-8 w-8 text-blue-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          ></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
-          ></path>
-        </svg>
-      </div>
-    );
-  }
-
-  // Handle errors
+  // Determine error message if applicable
+  let errorMessage: string | null = null;
   if (error) {
-    let message = 'Oops, something went wrong. Please refresh the page.';
     if (error.response) {
       console.error('Error response:', {
         status: error.response.status,
@@ -132,13 +101,13 @@ export const HomePage = () => {
         corsOrigin: error.response.headers?.['access-control-allow-origin'] || 'Not set',
       });
       if (error.response.status === 404) {
-        message = 'Blog posts not found. Please try again later.';
+        errorMessage = 'Blog posts not found. Please try again later.';
       } else if (error.response.status >= 500) {
-        message = 'Server error. Please try again later.';
+        errorMessage = 'Server error. Please try again later.';
       } else if (error.response.status === 403) {
-        message = 'Access denied. This may be due to a server CORS configuration issue.';
+        errorMessage = 'Access denied. This may be due to a server CORS configuration issue.';
       } else {
-        message = `Error: ${error.response.status} - ${
+        errorMessage = `Error: ${error.response.status} - ${
           error.response.data?.message || error.message
         }`;
       }
@@ -148,19 +117,54 @@ export const HomePage = () => {
         code: error.code,
         requestUrl: error.config?.url,
       });
-      message = 'Unable to connect to the server. This may be a CORS or server configuration issue. Please try again later.';
+      errorMessage = 'Unable to connect to the server. Please try again later.';
     }
-    return (
-      <div id="error-message" role="alert" aria-live="assertive">
-        {message}
-      </div>
-    );
   }
 
-  // Render the page
   return (
     <Layout title="The Bambi Cloud Podcast" id="home-page-layout">
-      <div id="home-page-content">
+      <div id="home-page-content" className="relative">
+        {/* Loading overlay */}
+        {isLoading && (
+          <div
+            id="loading-message"
+            className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10"
+            aria-live="polite"
+          >
+            <svg
+              className="animate-spin h-8 w-8 text-blue-500"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+              />
+            </svg>
+          </div>
+        )}
+        {/* Error message */}
+        {errorMessage && (
+          <div
+            id="error-message"
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"
+            role="alert"
+            aria-live="assertive"
+          >
+            {errorMessage}
+          </div>
+        )}
+        {/* Main content */}
         <FeaturedPost
           id="featured-posts-section"
           blogs={blogs.filter((blog) => blog.featured)}
