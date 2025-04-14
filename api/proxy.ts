@@ -99,29 +99,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Headers sent to backend:', backendHeaders);
 
   try {
-    const response = await axios({
+    const response = await fetch(targetUrl, {
       method: req.method,
-      url: targetUrl,
       headers: backendHeaders,
-      data: req.method !== 'GET' && req.method !== 'HEAD' ? req.body : undefined,
+      body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined,
     });
 
     const responseHeaders = response.headers;
-    const dataSnippet = typeof response.data === 'string' 
-      ? response.data.substring(0, 100) 
-      : JSON.stringify(response.data).substring(0, 100);
+    const dataSnippet = response.ok 
+      ? await response.text().then(text => text.substring(0, 100)) 
+      : 'Error response';
     await sendLog('info', 'Received backend response', {
       status: response.status,
-      headers: responseHeaders,
-      contentType: responseHeaders['content-type'] || 'Not set',
-      contentEncoding: responseHeaders['content-encoding'] || 'none',
+      headers: Object.fromEntries(responseHeaders.entries()),
+      contentType: responseHeaders.get('content-type') || 'Not set',
+      contentEncoding: responseHeaders.get('content-encoding') || 'none',
       dataSnippet,
     });
     console.log('Backend response:', {
       status: response.status,
-      headers: responseHeaders,
-      contentType: responseHeaders['content-type'] || 'Not set',
-      contentEncoding: responseHeaders['content-encoding'] || 'none',
+      headers: Object.fromEntries(responseHeaders.entries()),
+      contentType: responseHeaders.get('content-type') || 'Not set',
+      contentEncoding: responseHeaders.get('content-encoding') || 'none',
     });
 
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -129,12 +128,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 
     res.status(response.status);
-    for (const [key, value] of Object.entries(responseHeaders)) {
+    for (const [key, value] of responseHeaders.entries()) {
       console.log(`Setting response header: ${key}: ${value}`);
       res.setHeader(key, value);
     }
 
-    res.send(response.data);
+    const responseData = response.ok ? await response.json() : { error: 'Error response' };
+    res.send(responseData);
   } catch (error) {
     let errorMessage = 'Unknown error';
     let errorStack = 'No stack trace';
