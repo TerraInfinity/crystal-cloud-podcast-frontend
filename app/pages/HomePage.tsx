@@ -25,12 +25,17 @@ interface ErrorResponse {
 }
 
 export const HomePage = () => {
-  // Debug environment variables (optional, consider removing in production)
-  console.log('Environment:', {
+  // Log environment variables for debugging
+  console.log('Environment variables:', {
     VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'undefined',
     VITE_FRONTEND_URL: import.meta.env.VITE_FRONTEND_URL || 'undefined',
     VITE_NODE_ENV: import.meta.env.VITE_NODE_ENV || 'undefined',
   });
+
+  // Define expected headers
+  const expectedHeaders = {
+    Accept: 'application/json',
+  };
 
   // Fetch blog posts using React Query
   const { data: blogs = [], isLoading, error } = useQuery<BlogPost[], AxiosError<ErrorResponse>>({
@@ -38,44 +43,59 @@ export const HomePage = () => {
     queryFn: async () => {
       try {
         const apiUrl = '/api/blogs/';
-        console.log('Sending request to:', apiUrl);
+        console.log('Preparing Axios request:', {
+          url: apiUrl,
+          method: 'GET',
+          headers: expectedHeaders,
+        });
 
-        const response = await axios.get<BlogPost[]>(apiUrl);
+        const response = await axios.get<BlogPost[]>(apiUrl, {
+          headers: expectedHeaders,
+        });
 
+        // Log successful response with header comparison
+        const receivedHeaders = response.headers;
         console.log('✅ Response received:', {
           status: response.status,
-          contentType: response.headers['content-type'],
-          contentEncoding: response.headers['content-encoding'] || 'none',
-          corsOrigin: response.headers['access-control-allow-origin'] || 'Not set',
-          corsMethods: response.headers['access-control-allow-methods'] || 'Not set',
-          corsHeaders: response.headers['access-control-allow-headers'] || 'Not set',
+          headers: {
+            contentType: receivedHeaders['content-type'] || 'Not set',
+            contentEncoding: receivedHeaders['content-encoding'] || 'none',
+            corsOrigin: receivedHeaders['access-control-allow-origin'] || 'Not set',
+            corsMethods: receivedHeaders['access-control-allow-methods'] || 'Not set',
+            corsHeaders: receivedHeaders['access-control-allow-headers'] || 'Not set',
+          },
+          expectedContentType: 'application/json',
+          matchesContentType: (receivedHeaders['content-type'] || '').includes('application/json'),
           dataLength: Array.isArray(response.data) ? response.data.length : 'Not an array',
         });
 
         if (!Array.isArray(response.data)) {
-          console.error('🛑 Expected array, got:', response.data);
+          console.error('🛑 Response data is not an array:', response.data);
           throw new Error('Invalid response format: expected an array of blog posts');
         }
 
         return response.data;
       } catch (error) {
         if (error instanceof AxiosError) {
+          // Log detailed error information
           console.error('🛑 Axios error:', {
             message: error.message,
             code: error.code,
             status: error.response?.status,
-            headers: error.response?.headers || 'No response headers',
-            corsOrigin: error.response?.headers?.['access-control-allow-origin'] || 'Not set',
-            corsMethods: error.response?.headers?.['access-control-allow-methods'] || 'Not set',
-            corsHeaders: error.response?.headers?.['access-control-allow-headers'] || 'Not set',
+            responseHeaders: error.response?.headers || 'No response headers',
             requestHeaders: error.config?.headers,
-            requestUrl: error.config?.url,
+            expectedHeaders,
+            matchesAccept: error.config?.headers?.Accept === expectedHeaders.Accept,
+            url: error.config?.url,
             isNetworkError: !error.response,
-            cause: error.cause?.message || 'Unknown cause',
+            responseData: error.response?.data || 'No response data',
           });
           throw error;
         }
-        console.error('🛑 Unexpected error:', error);
+        console.error('🛑 Unexpected error:', {
+          message: (error as Error).message,
+          stack: (error as Error).stack,
+        });
         throw new Error('Failed to fetch blog posts');
       }
     },
@@ -88,17 +108,17 @@ export const HomePage = () => {
       }
       return false;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Determine error message if applicable
+  // Determine error message for display
   let errorMessage: string | null = null;
   if (error) {
     if (error.response) {
-      console.error('Error response:', {
+      console.error('Error response details:', {
         status: error.response.status,
         headers: error.response.headers,
-        corsOrigin: error.response.headers?.['access-control-allow-origin'] || 'Not set',
+        data: error.response.data,
       });
       if (error.response.status === 404) {
         errorMessage = 'Blog posts not found. Please try again later.';
@@ -112,10 +132,10 @@ export const HomePage = () => {
         }`;
       }
     } else {
-      console.error('Network error:', {
+      console.error('Network error details:', {
         message: error.message,
         code: error.code,
-        requestUrl: error.config?.url,
+        url: error.config?.url,
       });
       errorMessage = 'Unable to connect to the server. Please try again later.';
     }
@@ -165,10 +185,10 @@ export const HomePage = () => {
           </div>
         )}
         {/* Main content */}
-        {/*<FeaturedPost
+        <FeaturedPost
           id="featured-posts-section"
           blogs={blogs.filter((blog) => blog.featured)}
-        />*/}
+        />
         <BlogPostGrid id="blog-posts-grid" blogs={blogs} />
       </div>
     </Layout>
