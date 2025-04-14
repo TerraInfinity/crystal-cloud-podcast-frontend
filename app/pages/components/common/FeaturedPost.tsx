@@ -123,7 +123,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
     preloadLogos();
   }, [blogs, placeholderLogo]);
 
-  // Fetch thumbnails (unchanged)
+  // Fetch thumbnails
   useEffect(() => {
     const fetchThumbnails = async () => {
       const apiUrl = `${import.meta.env.VITE_BACKEND_URL || 'https://backend.terrainfinity.ca'}/api/`;
@@ -155,7 +155,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
     fetchThumbnails();
   }, [blogs, thumbnails]);
 
-  // Carousel interval (unchanged)
+  // Carousel interval
   useEffect(() => {
     if (blogs.length > 0 && !isPaused) {
       const interval = setInterval(() => {
@@ -165,15 +165,24 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
     }
   }, [blogs, isPaused]);
 
+  // Handle empty or invalid blogs prop
   if (!Array.isArray(blogs) || blogs.length === 0) {
-    console.error('FeaturedPost received invalid or empty blogs prop:', blogs);
-    return null;
+    console.warn('FeaturedPost received invalid or empty blogs prop:', blogs);
+    return (
+      <div className="text-center p-4 bg-gray-100 rounded-lg">
+        <p className="text-gray-600">No featured posts available at this time.</p>
+      </div>
+    );
   }
 
   const currentBlog = blogs[currentIndex];
   if (!currentBlog) {
     console.error('Current blog is undefined at index:', currentIndex);
-    return null;
+    return (
+      <div className="text-center p-4 bg-gray-100 rounded-lg">
+        <p className="text-red-500">Error: Unable to load featured post.</p>
+      </div>
+    );
   }
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
