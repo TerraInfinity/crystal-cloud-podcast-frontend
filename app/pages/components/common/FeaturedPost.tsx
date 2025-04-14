@@ -166,8 +166,14 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   }, [blogs, isPaused]);
 
   // Handle empty or invalid blogs prop
-  if (!Array.isArray(blogs) || blogs.length === 0) {
-    console.warn('FeaturedPost received invalid or empty blogs prop:', blogs);
+  if (!Array.isArray(blogs)) {
+    console.warn('FeaturedPost received invalid blogs prop:', blogs);
+    return (
+      <div className="text-center p-4 bg-gray-100 rounded-lg">
+        <p className="text-red-500">Error: Invalid blogs data.</p>
+      </div>
+    );
+  } else if (blogs.length === 0) {
     return (
       <div className="text-center p-4 bg-gray-100 rounded-lg">
         <p className="text-gray-600">No featured posts available at this time.</p>
