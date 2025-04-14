@@ -165,10 +165,10 @@ export const HomePage = () => {
           </div>
         )}
         {/* Main content */}
-        <FeaturedPost
+        {/*<FeaturedPost
           id="featured-posts-section"
           blogs={blogs.filter((blog) => blog.featured)}
-        />
+        />*/}
         <BlogPostGrid id="blog-posts-grid" blogs={blogs} />
       </div>
     </Layout>
