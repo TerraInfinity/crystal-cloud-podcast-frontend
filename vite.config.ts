@@ -22,6 +22,11 @@ export default defineConfig({
         target: process.env.VITE_BACKEND_URL,
         changeOrigin: true,
         secure: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            proxyReq.setHeader('Accept-Encoding', 'identity');
+          });
+        },
       },
     },
   },
