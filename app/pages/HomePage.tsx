@@ -29,40 +29,43 @@ export const HomePage = () => {
     queryKey: ['blogs'], // Unique key for caching
     queryFn: async () => {
       try {
-        const apiUrl = '/api/blogs/'; // Relative path leveraging proxy
-        const isDev = import.meta.env.VITE_NODE_ENV === 'development'; // Development mode check
-        if (isDev) console.log('🚀 Sending request to:', apiUrl);
+        const apiUrl = '/api/blogs/';
+        console.log('🚀 Sending request to:', apiUrl);
 
-        const response = await axios.get<BlogPost[]>(apiUrl);
-
-        if (isDev) console.log('✅ API Response:', {
-          status: response.status,
-          dataLength: Array.isArray(response.data) ? response.data.length : 'Not an array',
-          data: response.data,
+        const response = await axios.get<BlogPost[]>(apiUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Accept-Encoding': 'identity', // Avoid compression issues
+          },
+          timeout: 10000, // 10s timeout
         });
 
-        // Validate response data is an array; fallback to empty array if not
+        console.log('✅ Response received:', {
+          status: response.status,
+          contentType: response.headers['content-type'],
+          contentEncoding: response.headers['content-encoding'] || 'none',
+          dataLength: Array.isArray(response.data) ? response.data.length : 'Not an array',
+        });
+
         return Array.isArray(response.data) ? response.data : [];
       } catch (error) {
         if (error instanceof AxiosError) {
-          // Log detailed Axios error info
-          console.error('Axios error:', {
+          console.error('🛑 Axios error:', {
             message: error.message,
-            response: error.response?.data,
+            code: error.code,
             status: error.response?.status,
+            headers: error.response?.headers || 'No response headers',
+            requestHeaders: error.config?.headers,
+            requestUrl: error.config?.url,
+            isNetworkError: !!error.request,
           });
-          throw error; // Pass to React Query for retry logic
-        } else {
-          console.error('Unexpected error:', error);
-          throw new Error('Failed to fetch blog posts');
+          throw error;
         }
+        console.error('🛑 Unexpected error:', error);
+        throw new Error('Failed to fetch blog posts');
       }
     },
-    retry: (failureCount, error) => {
-      // Retry up to 3 times, but not for 404 errors
-      if (error.response?.status === 404) return false;
-      return failureCount < 3;
-    },
+    retry: false, // Disable retries for debugging
   });
 
   // Display loading state with accessible spinner
@@ -101,20 +104,26 @@ export const HomePage = () => {
   if (error) {
     let message = 'Oops, something went wrong. Please refresh the page.';
     if (error.response) {
-      // Server responded with an error status
+      console.error('🛑 Error response:', {
+        status: error.response.status,
+        headers: error.response.headers,
+      });
       if (error.response.status === 404) {
         message = 'Blog posts not found. Please try again later.';
       } else if (error.response.status >= 500) {
         message = 'Server error. Please try again later.';
       } else {
-        // Safely access error.response.data.message with fallback
         message = `Error: ${error.response.status} - ${error.response.data?.message || error.message}`;
       }
     } else if (error.request) {
-      // No response received (network error)
+      console.error('🛑 Network error:', {
+        message: error.message,
+        code: error.code,
+        requestUrl: error.config?.url,
+      });
       message = 'Network error. Please check your internet connection and try again.';
     } else {
-      // Other unexpected errors
+      console.error('🛑 Setup error:', error.message);
       message = `Error: ${error.message}`;
     }
     return (
