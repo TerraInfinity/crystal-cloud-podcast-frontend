@@ -31,9 +31,9 @@ export const HomePage = () => {
     queryFn: async () => {
       try {
         const apiUrl = '/api/blogs/'; // Rely on vercel.json rewrite to /api/proxy
-        console.log('Sending request to:', apiUrl, 'with VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
+        console.log('Sending request to: ', import.meta.env.VITE_FRONTEND_URL, apiUrl, ' which will change via vite proxy to: ', import.meta.env.VITE_BACKEND_URL, apiUrl);
 
-        const response = await axios.get<BlogPost[]>(apiUrl, {
+        const response = await axios.get<BlogPost[]>(import.meta.env.VITE_FRONTEND_URL+apiUrl, {
           headers: {
             Accept: 'application/json',
           },
