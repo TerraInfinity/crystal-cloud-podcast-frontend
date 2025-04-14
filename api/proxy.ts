@@ -1,5 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+const allowedOrigins = [
+    'https://backend.terrainfinity.ca',
+    'http://backend.terrainfinity.ca',
+    'https://crystalcloudpodcast.terrainfinity.ca',
+    'http://crystalcloudpodcast.terrainfinity.ca',
+    'https://bambicloudpodcast.terrainfinity.ca',
+    'http://bambicloudpodcast.terrainfinity.ca',
+    'https://glaumcloudpodcast.terrainfinity.ca',
+    'http://glaumcloudpodcast.terrainfinity.ca',
+    'http://localhost:3000',
+    'http://localhost'
+].filter(Boolean);
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const frontendUrl = process.env.VITE_FRONTEND_URL;
   const backendUrl = process.env.VITE_BACKEND_URL;
@@ -11,8 +24,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'VITE_BACKEND_URL environment variable is not set' });
   }
 
-  const isVercel = process.env.VERCEL === '1';
-  const origin = !isVercel && req.headers.origin === 'http://localhost:5173' ? 'http://localhost:5173' : frontendUrl;
+  const isVercel = process.env.VITE_VERCEL_ENV === 'true';
+  const origin = !isVercel && req.headers.origin && allowedOrigins.includes(req.headers.origin) 
+    ? req.headers.origin 
+    : frontendUrl;
 
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', origin);
