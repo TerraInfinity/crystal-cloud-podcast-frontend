@@ -11,7 +11,6 @@
  * <HomePage />
  */
 import React from 'react';
-
 import Layout from './components/common/Layout';
 import FeaturedPost from './components/common/FeaturedPost';
 import BlogPostGrid from './components/BlogListPage/BlogPostGrid';
@@ -25,20 +24,22 @@ interface ErrorResponse {
 }
 
 export const HomePage = () => {
-  // Fetch blog posts using React Query with enhanced CORS debugging
+  // Debug environment variables
+  console.log('Environment:', {
+    VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'undefined',
+    VITE_FRONTEND_URL: import.meta.env.VITE_FRONTEND_URL || 'undefined',
+    VITE_NODE_ENV: import.meta.env.VITE_NODE_ENV || 'undefined',
+  });
+
+  // Fetch blog posts using React Query
   const { data: blogs = [], isLoading, error } = useQuery<BlogPost[], AxiosError<ErrorResponse>>({
     queryKey: ['blogs'],
     queryFn: async () => {
       try {
         const apiUrl = '/api/blogs/'; // Rely on vercel.json rewrite to /api/proxy
-        console.log('Sending request to: ', import.meta.env.VITE_FRONTEND_URL, apiUrl, ' which will change via vite proxy to: ', import.meta.env.VITE_BACKEND_URL, apiUrl);
+        console.log('Sending request to:', apiUrl);
 
-        const response = await axios.get<BlogPost[]>(import.meta.env.VITE_FRONTEND_URL+apiUrl, {
-          headers: {
-            Accept: 'application/json',
-          },
-          timeout: 10000,
-        });
+        const response = await axios.get<BlogPost[]>(apiUrl); // Simplified Axios call, no headers or timeout
 
         console.log('✅ Response received:', {
           status: response.status,
