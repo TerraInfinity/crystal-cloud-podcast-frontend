@@ -11,6 +11,7 @@
  * <HomePage />
  */
 import React from 'react';
+
 import Layout from './components/common/Layout';
 import FeaturedPost from './components/common/FeaturedPost';
 import BlogPostGrid from './components/BlogListPage/BlogPostGrid';
@@ -24,12 +25,12 @@ interface ErrorResponse {
 }
 
 export const HomePage = () => {
-  // Fetch blog posts using React Query with enhanced error handling
+  // Fetch blog posts using React Query with enhanced CORS debugging
   const { data: blogs = [], isLoading, error } = useQuery<BlogPost[], AxiosError<ErrorResponse>>({
     queryKey: ['blogs'],
     queryFn: async () => {
       try {
-        const apiUrl = '/api/blogs/'; // Keep relative path for proxy
+        const apiUrl = '/api/blogs/'; // Rely on vercel.json rewrite to /api/proxy
         console.log('Sending request to:', apiUrl, 'with VITE_BACKEND_URL:', process.env.VITE_BACKEND_URL);
 
         const response = await axios.get<BlogPost[]>(apiUrl, {
@@ -43,7 +44,9 @@ export const HomePage = () => {
           status: response.status,
           contentType: response.headers['content-type'],
           contentEncoding: response.headers['content-encoding'] || 'none',
-          corsHeader: response.headers['access-control-allow-origin'] || 'Not set',
+          corsOrigin: response.headers['access-control-allow-origin'] || 'Not set',
+          corsMethods: response.headers['access-control-allow-methods'] || 'Not set',
+          corsHeaders: response.headers['access-control-allow-headers'] || 'Not set',
           dataLength: Array.isArray(response.data) ? response.data.length : 'Not an array',
         });
 
@@ -60,7 +63,9 @@ export const HomePage = () => {
             code: error.code,
             status: error.response?.status,
             headers: error.response?.headers || 'No response headers',
-            corsHeader: error.response?.headers?.['access-control-allow-origin'] || 'Not set',
+            corsOrigin: error.response?.headers?.['access-control-allow-origin'] || 'Not set',
+            corsMethods: error.response?.headers?.['access-control-allow-methods'] || 'Not set',
+            corsHeaders: error.response?.headers?.['access-control-allow-headers'] || 'Not set',
             requestHeaders: error.config?.headers,
             requestUrl: error.config?.url,
             isNetworkError: !error.response,
@@ -123,14 +128,14 @@ export const HomePage = () => {
       console.error('Error response:', {
         status: error.response.status,
         headers: error.response.headers,
-        corsHeader: error.response.headers?.['access-control-allow-origin'] || 'Not set',
+        corsOrigin: error.response.headers?.['access-control-allow-origin'] || 'Not set',
       });
       if (error.response.status === 404) {
         message = 'Blog posts not found. Please try again later.';
       } else if (error.response.status >= 500) {
         message = 'Server error. Please try again later.';
       } else if (error.response.status === 403) {
-        message = 'Access denied. This may be due to a server configuration issue.';
+        message = 'Access denied. This may be due to a server CORS configuration issue.';
       } else {
         message = `Error: ${error.response.status} - ${
           error.response.data?.message || error.message
@@ -142,7 +147,7 @@ export const HomePage = () => {
         code: error.code,
         requestUrl: error.config?.url,
       });
-      message = 'Unable to connect to the server. This may be a configuration issue with the server. Please try again later.';
+      message = 'Unable to connect to the server. This may be a CORS or server configuration issue. Please try again later.';
     }
     return (
       <div id="error-message" role="alert" aria-live="assertive">
