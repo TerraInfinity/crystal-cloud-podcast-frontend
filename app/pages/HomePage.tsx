@@ -39,7 +39,9 @@ export const HomePage = () => {
         const apiUrl = '/api/blogs/'; // Rely on vercel.json rewrite to /api/proxy
         console.log('Sending request to:', apiUrl);
 
-        const response = await axios.get<BlogPost[]>(apiUrl); // Simplified Axios call, no headers or timeout
+        const response = await axios.get<BlogPost[]>(apiUrl, {
+          headers: { 'Accept-Encoding': 'identity' }
+        });
 
         console.log('✅ Response received:', {
           status: response.status,
