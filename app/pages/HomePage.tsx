@@ -30,12 +30,12 @@ export const HomePage = () => {
     queryFn: async () => {
       try {
         const apiUrl = '/api/blogs/';
-        console.log('🚀 Sending request to:', apiUrl);
+        console.log('Sending request to:', apiUrl);
 
         const response = await axios.get<BlogPost[]>(apiUrl, {
           headers: {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'identity', // Avoid compression issues
+            Accept: 'application/json',
+            // Remove Accept-Encoding to let browser negotiate compression
           },
           timeout: 10000, // 10s timeout
         });
@@ -47,7 +47,13 @@ export const HomePage = () => {
           dataLength: Array.isArray(response.data) ? response.data.length : 'Not an array',
         });
 
-        return Array.isArray(response.data) ? response.data : [];
+        // Validate response data is an array
+        if (!Array.isArray(response.data)) {
+          console.error('🛑 Expected array, got:', response.data);
+          throw new Error('Invalid response format: expected an array of blog posts');
+        }
+
+        return response.data;
       } catch (error) {
         if (error instanceof AxiosError) {
           console.error('🛑 Axios error:', {
@@ -57,7 +63,7 @@ export const HomePage = () => {
             headers: error.response?.headers || 'No response headers',
             requestHeaders: error.config?.headers,
             requestUrl: error.config?.url,
-            isNetworkError: !!error.request,
+            isNetworkError: !error.response,
           });
           throw error;
         }
@@ -65,7 +71,17 @@ export const HomePage = () => {
         throw new Error('Failed to fetch blog posts');
       }
     },
-    retry: false, // Disable retries for debugging
+    retry: (failureCount, error) => {
+      // Allow retries for network errors or 5xx status codes, up to 3 attempts
+      if (error instanceof AxiosError) {
+        return (
+          failureCount < 3 &&
+          (!error.response || error.response.status >= 500 || error.code === 'ERR_NETWORK')
+        );
+      }
+      return false;
+    },
+    staleTime: 5 * 60 * 1000, // Cache data for 5 minutes
   });
 
   // Display loading state with accessible spinner
@@ -104,7 +120,7 @@ export const HomePage = () => {
   if (error) {
     let message = 'Oops, something went wrong. Please refresh the page.';
     if (error.response) {
-      console.error('🛑 Error response:', {
+      console.error('Error response:', {
         status: error.response.status,
         headers: error.response.headers,
       });
@@ -113,21 +129,23 @@ export const HomePage = () => {
       } else if (error.response.status >= 500) {
         message = 'Server error. Please try again later.';
       } else {
-        message = `Error: ${error.response.status} - ${error.response.data?.message || error.message}`;
+        message = `Error: ${error.response.status} - ${
+          error.response.data?.message || error.message
+        }`;
       }
-    } else if (error.request) {
-      console.error('🛑 Network error:', {
+    } else if (!error.response) {
+      console.error('Network error:', {
         message: error.message,
         code: error.code,
         requestUrl: error.config?.url,
       });
       message = 'Network error. Please check your internet connection and try again.';
     } else {
-      console.error('🛑 Setup error:', error.message);
+      console.error('Setup error:', error.message);
       message = `Error: ${error.message}`;
     }
     return (
-      <div id="error-message" role="alert">
+      <div id="error-message" role="alert" aria-live="assertive">
         {message}
       </div>
     );
