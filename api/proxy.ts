@@ -11,7 +11,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'VITE_BACKEND_URL environment variable is not set' });
   }
 
-  const origin = req.headers.origin === 'http://localhost:5173' ? 'http://localhost:5173' : frontendUrl;
+  const isVercel = process.env.VERCEL === '1';
+  const origin = !isVercel && req.headers.origin === 'http://localhost:5173' ? 'http://localhost:5173' : frontendUrl;
 
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -49,8 +50,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.setHeader(key, value);
     }
 
-    const data = await response.json();
-    res.json(data);
+    const data = await response.arrayBuffer();
+    res.send(Buffer.from(data));
   } catch (error) {
     console.error('Proxy error:', error);
     res.status(500).json({ error: 'Failed to proxy request', details: (error as Error).message });
