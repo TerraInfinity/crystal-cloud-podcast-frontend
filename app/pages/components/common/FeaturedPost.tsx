@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { FaComments } from 'react-icons/fa';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import type { BlogPost } from '../../../types/blog'; // Use type-only import for BlogPost
-import { checkImageExists } from '../../../utils/imageUtils'; // Adjust the import path as needed
-import { logGroupedMessage } from '../../../utils/consoleGroupLogger'; // Adjust path as needed
-import { useQuery } from '@tanstack/react-query'; // New import
-import { fetchThumbnail } from '../../../utils/imageUtils'; // Adjust the import path as needed
+import type { BlogPost } from '../../../types/blog';
+import { checkImageExists } from '../../../utils/imageUtils';
+import { logGroupedMessage } from '../../../utils/consoleGroupLogger';
+import { useQuery } from '@tanstack/react-query';
+import { fetchThumbnail } from '../../../utils/imageUtils';
 
 /**
  * Interface for FeaturedPost component props.
@@ -96,10 +96,10 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
         acc[id] = logo || placeholderLogo;
         return acc;
       }, {} as Record<string, string>);
-      setLogoUrls((prev) => ({ ...prev, ...newLogoUrls })); // Update only the logos that were preloaded
+      setLogoUrls((prev) => ({ ...prev, ...newLogoUrls }));
     };
     preloadLogos();
-  }, [blogs, currentIndex, placeholderLogo]); // Add currentIndex to the dependency array
+  }, [blogs, currentIndex, placeholderLogo]);
 
   // Fetch thumbnails using useQuery
   const thumbnailQueries = blogs.map((blog) =>
@@ -116,7 +116,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
       const interval = setInterval(() => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % blogs.length);
       }, 5000);
-      return () => clearInterval(interval); // Clean up interval on unmount or when dependencies change
+      return () => clearInterval(interval);
     }
   }, [blogs, isPaused]);
 
@@ -169,10 +169,10 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
       {/* Top Block: Blog Title and Summary */}
       <div className="p-4 bg-gray-800 text-white" id="featured-post-header">
         <h2 className="text-3xl font-semibold" id="featured-post-title">
-          {currentBlog.title}
+          {typeof currentBlog.title === 'string' ? currentBlog.title : 'Untitled'}
           <span className="text-gray-300"> - </span>
           <span className="text-gray-400 text-sm max-w-xs truncate" id="featured-post-summary">
-            {currentBlog.blogSummary}
+            {typeof currentBlog.blogSummary === 'string' ? currentBlog.blogSummary : ''}
           </span>
         </h2>
       </div>
@@ -182,7 +182,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
         <img
           id="featured-post-thumbnail"
           src={currentThumbnail}
-          alt={currentBlog.title}
+          alt={typeof currentBlog.title === 'string' ? currentBlog.title : 'Untitled'}
           className="w-full h-auto max-h-[35vh]"
         />
         <Link to={`/blog/${currentBlog.id}`} className="absolute inset-0" id="featured-post-link">
@@ -225,15 +225,15 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
             <img
               id="featured-post-author-avatar"
               src={logoUrls[currentBlog.id] || placeholderLogo}
-              alt={currentBlog.authorName || 'Author'}
+              alt={typeof currentBlog.authorName === 'string' ? currentBlog.authorName : 'Author'}
               className="w-8 h-8 rounded-full flex-shrink-0"
               onError={() => handleLogoError(currentBlog.id)}
             />
             <div className="max-w-fit bg-green-500 rounded p-1" id="featured-post-author-name">
-              {currentBlog.authorName || 'Unknown Author'}
+              {typeof currentBlog.authorName === 'string' ? currentBlog.authorName : 'Unknown Author'}
             </div>
             <div className={`max-w-fit ${pathColor} rounded p-1 text-white`} id="featured-post-path-name">
-              {currentBlog.pathId || 'Unknown Path'}
+              {typeof currentBlog.pathId === 'string' ? currentBlog.pathId : 'Unknown Path'}
             </div>
             {mediaTag && (
               <div className={`px-2 py-1 ${mediaColor} rounded text-white flex-shrink-0`} id="featured-post-media-tag">

@@ -65,13 +65,16 @@ const BlogPostCard = ({ blog }: { blog: BlogPost }) => {
     // Currently, useQuery's fallback handles most cases
   };
 
+  // Ensure thumbnailUrl is a string
+  const safeThumbnailUrl = typeof thumbnailUrl === 'string' ? thumbnailUrl : defaultImage;
+
   return (
     <Link to={`/blog/${id}`} className="overflow-hidden rounded-lg bg-slate-800 shadow-md" id={`blog-post-link-${id}`}>
       {/* Image Container */}
       <div className="relative h-[200px] w-full" id={`blog-media-container-${id}`}>
-        {thumbnailUrl && (
+        {safeThumbnailUrl && (
           <img
-            src={thumbnailUrl}
+            src={safeThumbnailUrl}
             alt="Blog post thumbnail"
             className="absolute inset-0 w-full h-full object-fill"
             onError={handleImageError}
@@ -87,7 +90,7 @@ const BlogPostCard = ({ blog }: { blog: BlogPost }) => {
       {/* Content Container */}
       <div className="p-4" id={`blog-content-container-${id}`}>
         <h3 className="text-white text-xl font-semibold mb-2 truncate" id={`blog-title-${id}`}>
-          {title}
+          {typeof title === 'string' ? title : 'Untitled'}
         </h3>
         <div className="flex items-center mb-2" id={`author-info-container-${id}`}>
           <img
@@ -98,19 +101,19 @@ const BlogPostCard = ({ blog }: { blog: BlogPost }) => {
           />
           <div>
             <div className="text-white truncate" id={`author-name-${id}`}>
-              {authorName || 'Unknown Author'}
+              {typeof authorName === 'string' ? authorName : 'Unknown Author'}
             </div>
             <div className="text-gray-400 text-sm" id={`blog-date-${id}`}>
               {new Date(createdAt).toLocaleDateString()}
             </div>
           </div>
         </div>
-        {blogSummary && (
+        {typeof blogSummary === 'string' && blogSummary && (
           <p className="text-gray-300 mb-2 line-clamp-2" id={`blog-summary-${id}`}>
             {blogSummary}
           </p>
         )}
-        {pathId && (
+        {typeof pathId === 'string' && pathId && (
           <div className="text-gray-300 text-sm mb-2" id={`path-id-${id}`}>
             {pathId}
           </div>
