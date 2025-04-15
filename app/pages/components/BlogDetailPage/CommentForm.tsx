@@ -49,12 +49,13 @@ function CommentForm({
       return; // Exit if the rating is invalid
     }
     try {
-      const apiPort = process.env.REACT_APP_BACKEND_PORT;
-      const apiUrl = `${window.location.protocol}//${window.location.hostname}:${apiPort}/api/comments/create`;
+      // Use a relative URL for the API endpoint
+      const apiUrl = '/api/comments/create';
 
       // Retrieve the token from local storage for authentication
-      const token = localStorage.getItem('authToken'); // Adjust this line based on your implementation
+      const token = localStorage.getItem('authToken'); // Ensure this matches your auth implementation
       console.warn(blogId);
+
       // Submit the review to the API with the token in headers
       const response = await axios.post<Comment>(
         apiUrl,
