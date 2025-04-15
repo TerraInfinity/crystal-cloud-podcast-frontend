@@ -75,6 +75,8 @@ export function BlogDetailPage(): JSX.Element {
         console.log('Fetching blog from:', apiUrl); // Debug log
         const response = await axios.get<{ data: Blog }>(apiUrl);
         console.log('Blog response:', response.data); // Debug log
+        console.log('Full API response:', JSON.stringify(response.data, null, 2));
+
         setBlog(response.data.data);
         setEditedBlog(response.data.data);
         // Ensure comments are always an array, even if undefined or empty
