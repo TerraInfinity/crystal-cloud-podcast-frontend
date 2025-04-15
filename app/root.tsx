@@ -3,6 +3,7 @@ import "./app.css"; // Importing global styles
 import { isRouteErrorResponse, Outlet, Links, Meta, Scripts, ScrollRestoration } from "react-router-dom";
 import React, { useEffect, useRef } from "react";
 import type { Route } from "./+types/root";
+import { AuthProvider } from './context/AuthContext';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -59,9 +60,11 @@ export default function App() {
   }, []);
   console.log("Rendering App");
   return (
-    <Layout>
-      <Outlet />
-    </Layout>
+    <AuthProvider>
+      <Layout>
+        <Outlet />
+      </Layout>
+    </AuthProvider>
   );
 }
 
