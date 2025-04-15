@@ -36,7 +36,7 @@ const getPathColor = (pathId: string): string => {
   }
 };
 
-const FeaturedPost: React.FC<{ blogs?: BlogPost[] }> = ({ blogs = [] }) => {
+const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [], id }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
