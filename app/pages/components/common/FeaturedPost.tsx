@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FaComments } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../../types/blog';
-import { useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { fetchThumbnail } from '../../../utils/imageUtils';
 import { useValidImageUrl } from '../../../hooks/useValidImageUrl';
 
@@ -48,41 +48,6 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
     setCurrentIndex(0);
   }, [blogs]);
 
-  // Fetch thumbnails for all blogs using useQueries
-  const thumbnailQueries = useQueries({
-    queries: blogs.map((blog) => {
-      const defaultImage = blog.isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg';
-      return {
-        queryKey: [
-          'thumbnail',
-          blog.id,
-          blog.videoUrl || '',
-          blog.blogImage || '',
-          blog.embedUrl || '',
-          blog.postUrl || '',
-          blog.isAgeRestricted ? 'true' : 'false',
-        ],
-        queryFn: () => fetchThumbnail(blog),
-        placeholderData: blog.blogImage || defaultImage,
-      };
-    }),
-  });
-
-  // Use useValidImageUrl for each blog's author logo
-  const logoUrls = blogs.map((blog) =>
-    useValidImageUrl(blog.authorLogo, placeholderLogo)
-  );
-
-  // Carousel interval
-  useEffect(() => {
-    if (blogs.length > 1 && !isPaused) {
-      const interval = setInterval(() => {
-        setCurrentIndex((prevIndex) => (prevIndex + 1) % blogs.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [blogs, isPaused]);
-
   // Handle empty or invalid blogs prop
   if (!Array.isArray(blogs) || blogs.length === 0) {
     return (
@@ -95,10 +60,40 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
   // Safeguard currentIndex
   const safeIndex = Math.min(currentIndex, blogs.length - 1);
   const currentBlog = blogs[safeIndex];
-  const currentThumbnail = typeof thumbnailQueries[safeIndex]?.data === 'string'
-    ? thumbnailQueries[safeIndex]?.data
-    : (currentBlog.blogImage || (currentBlog.isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg'));
-  const currentLogo = logoUrls[safeIndex];
+
+  // Define defaultImage for the current blog
+  const defaultImage = currentBlog.isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg';
+
+  // Fetch thumbnail for the current blog using useQuery
+  const { data: thumbnailUrl } = useQuery<string | null>({
+    queryKey: [
+      'thumbnail',
+      currentBlog.id,
+      currentBlog.videoUrl || '',
+      currentBlog.blogImage || '',
+      currentBlog.embedUrl || '',
+      currentBlog.postUrl || '',
+      currentBlog.isAgeRestricted ? 'true' : 'false',
+    ],
+    queryFn: () => fetchThumbnail(currentBlog),
+    placeholderData: currentBlog.blogImage || defaultImage,
+  });
+
+  // Use useValidImageUrl for the current blog's author logo
+  const logoUrl = useValidImageUrl(currentBlog.authorLogo, placeholderLogo);
+
+  // Carousel interval
+  useEffect(() => {
+    if (blogs.length > 1 && !isPaused) {
+      const interval = setInterval(() => {
+        setCurrentIndex((prevIndex) => (prevIndex + 1) % blogs.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [blogs, isPaused]);
+
+  // Ensure thumbnailUrl is a string
+  const safeThumbnailUrl = typeof thumbnailUrl === 'string' ? thumbnailUrl : defaultImage;
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
   const pathColor = getPathColor(currentBlog.pathId || '');
@@ -125,7 +120,7 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
       <div className="w-screen" id="featured-post-media">
         <img
           id="featured-post-thumbnail"
-          src={currentThumbnail}
+          src={safeThumbnailUrl}
           alt={currentBlog.title}
           className="w-full h-auto max-h-[35vh]"
         />
@@ -166,7 +161,7 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
           <div className="flex flex-wrap items-center space-x-2 min-w-0 gap-2" id="featured-post-author-info">
             <img
               id="featured-post-author-avatar"
-              src={currentLogo}
+              src={logoUrl}
               alt={currentBlog.authorName || 'Author'}
               className="w-8 h-8 rounded-full flex-shrink-0"
               onError={(e) => {
