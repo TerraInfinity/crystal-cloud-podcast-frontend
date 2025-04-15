@@ -8,6 +8,7 @@ interface BlogPostGridProps {
   id: string;
   blogs: BlogPost[]; // Array of blog post objects
   thumbnails: Record<string, string>; // Map of blog IDs to thumbnail URLs
+  nsfwDisclaimerAccepted: boolean; // Indicates if NSFW disclaimer is accepted
 }
 
 /**
@@ -15,11 +16,12 @@ interface BlogPostGridProps {
  *
  * Renders a responsive grid layout of blog posts using the data provided via the `blogs` prop.
  * Displays the latest blog posts in a grid, with each post rendered using the BlogPostCard component.
- * Passes pre-fetched thumbnails to each BlogPostCard for efficient rendering.
+ * Passes pre-fetched thumbnails and NSFW disclaimer status to each BlogPostCard for efficient rendering.
  *
  * @param {BlogPostGridProps} props - The component props
  * @param {BlogPost[]} props.blogs - Array of blog post objects (defaults to empty array)
  * @param {Record<string, string>} props.thumbnails - Map of blog IDs to thumbnail URLs
+ * @param {boolean} props.nsfwDisclaimerAccepted - Whether the NSFW disclaimer has been accepted
  *
  * @component
  * @example
@@ -41,13 +43,13 @@ interface BlogPostGridProps {
  * ];
  * const thumbnails = { '1': 'url_to_thumbnail' };
  *
- * <BlogPostGrid id="grid-id" blogs={blogs} thumbnails={thumbnails} />
+ * <BlogPostGrid id="grid-id" blogs={blogs} thumbnails={thumbnails} nsfwDisclaimerAccepted={true} />
  *
  * @author Bad Wolf
  * @version 1.4
  * @since 2025-03-22
  */
-const BlogPostGrid = ({ id, blogs = [], thumbnails }: BlogPostGridProps) => {
+const BlogPostGrid = ({ id, blogs = [], thumbnails, nsfwDisclaimerAccepted }: BlogPostGridProps) => {
   return (
     <div className="px-20 py-0 max-md:px-10 max-md:py-0 max-sm:px-5 max-sm:py-0" id={id}>
       <h2 className="mb-8 text-2xl text-white" id="latest-posts-title">Latest Posts</h2>
@@ -60,6 +62,7 @@ const BlogPostGrid = ({ id, blogs = [], thumbnails }: BlogPostGridProps) => {
                 key={blog.id}
                 blog={blog}
                 thumbnail={thumbnails[blog.id] || ''} // Pass thumbnail, fallback to empty string
+                nsfwDisclaimerAccepted={nsfwDisclaimerAccepted}
                 data-testid={`blog-post-${blog.id}`}
               />
             ))

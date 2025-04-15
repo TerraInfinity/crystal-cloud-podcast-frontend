@@ -12,6 +12,7 @@ interface FeaturedPostProps {
   blogs: BlogPost[];
   thumbnails: Record<string, string>; // blogId -> thumbnailUrl
   logoUrls: Record<string, string>; // blogId -> logoUrl
+  nsfwDisclaimerAccepted: boolean;
 }
 
 /**
@@ -46,8 +47,10 @@ const getPathColor = (pathId: string): string => {
 
 /**
  * FeaturedPost Component
+ * Displays a carousel of featured blog posts with thumbnails, metadata, and navigation dots.
+ * Handles age-restricted content based on nsfwDisclaimerAccepted prop.
  */
-const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails, logoUrls }) => {
+const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails, logoUrls, nsfwDisclaimerAccepted }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
@@ -64,7 +67,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails,
   }
   const placeholderLogo = `${baseUrl}/assets/images/logo.png`;
 
-  // Carousel interval
+  // Carousel interval for multiple blogs
   useEffect(() => {
     if (blogs.length > 1 && !isPaused) {
       const interval = setInterval(() => {
@@ -74,7 +77,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails,
     }
   }, [blogs, isPaused]);
 
-  // Handle empty or invalid blogs prop
+  // Handle invalid or empty blogs prop
   if (!Array.isArray(blogs)) {
     console.warn('FeaturedPost received invalid blogs prop:', blogs);
     return (
@@ -103,6 +106,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails,
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
   const pathColor = getPathColor(currentBlog.pathId || '');
   const safeThumbnailUrl = thumbnails[currentBlog.id] || currentBlog.blogImage || getDefaultImage(currentBlog.isAgeRestricted ?? false);
+  const isRestricted = currentBlog.isAgeRestricted && !nsfwDisclaimerAccepted;
 
   const handleDotClick = (index: number) => {
     setCurrentIndex(index);
@@ -112,7 +116,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails,
   return (
     <div className="relative mb-10" id={id}>
       {/* Top Block: Blog Title and Summary */}
-      <div className="p-4 bg-gray-800 text-white" id="featured-post-header">
+      <div className={`p-4 bg-gray-800 text-white ${isRestricted ? 'blur-sm' : ''}`} id="featured-post-header">
         <h2 className="text-3xl font-semibold" id="featured-post-title">
           {currentBlog.title}
           <span className="text-gray-300"> - </span>
@@ -123,45 +127,59 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails,
       </div>
 
       {/* Middle Block: Thumbnail */}
-      <div className="w-screen" id="featured-post-media">
-        <img
-          id="featured-post-thumbnail"
-          src={safeThumbnailUrl}
-          alt={currentBlog.title}
-          className="w-full h-auto max-h-[35vh]"
-        />
-        <Link to={`/blog/${currentBlog.id}`} className="absolute inset-0" id="featured-post-link">
-          <span className="sr-only">Go to blog post</span>
-        </Link>
-        {/* Navigation Dots */}
-        <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center">
-          <div className="flex justify-center w-full sm:w-auto">
-            <div className="p-2 rounded-lg">
-              <div className="flex justify-center items-center gap-2 sm:gap-4">
-                {blogs.map((_, index) => (
-                  <div
-                    key={index}
-                    id={`dot-${index}`}
-                    className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full cursor-pointer ${
-                      index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
-                    }`}
-                    onClick={() => handleDotClick(index)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Go to featured post ${index + 1} of ${blogs.length}`}
-                    aria-current={index === currentIndex ? 'true' : 'false'}
-                    onKeyDown={(e) => e.key === 'Enter' && handleDotClick(index)}
-                    style={{ touchAction: 'manipulation' }}
-                  />
-                ))}
+      {isRestricted ? (
+        <div className="w-screen relative" id="featured-post-media">
+          <img
+            id="featured-post-thumbnail"
+            src={safeThumbnailUrl}
+            alt={currentBlog.title}
+            className="w-full h-auto max-h-[35vh] blur-sm"
+          />
+          <div className="absolute inset-0 flex items-center justify-center text-white text-xl bg-black bg-opacity-50">
+            Age Restricted
+          </div>
+        </div>
+      ) : (
+        <div className="w-screen relative" id="featured-post-media">
+          <img
+            id="featured-post-thumbnail"
+            src={safeThumbnailUrl}
+            alt={currentBlog.title}
+            className="w-full h-auto max-h-[35vh]"
+          />
+          <Link to={`/blog/${currentBlog.id}`} className="absolute inset-0" id="featured-post-link">
+            <span className="sr-only">Go to blog post</span>
+          </Link>
+          {/* Navigation Dots */}
+          <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center">
+            <div className="flex justify-center w-full sm:w-auto">
+              <div className="p-2 rounded-lg">
+                <div className="flex justify-center items-center gap-2 sm:gap-4">
+                  {blogs.map((_, index) => (
+                    <div
+                      key={index}
+                      id={`dot-${index}`}
+                      className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full cursor-pointer ${
+                        index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}
+                      onClick={() => handleDotClick(index)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Go to featured post ${index + 1} of ${blogs.length}`}
+                      aria-current={index === currentIndex ? 'true' : 'false'}
+                      onKeyDown={(e) => e.key === 'Enter' && handleDotClick(index)}
+                      style={{ touchAction: 'manipulation' }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Bottom Block: Metadata Container */}
-      <div className="bg-black bg-opacity-50 p-4" id="featured-post-metadata">
+      <div className={`bg-black bg-opacity-50 p-4 ${isRestricted ? 'blur-sm' : ''}`} id="featured-post-metadata">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           {/* Left: Author and Metadata */}
           <div className="flex flex-wrap items-center space-x-2 min-w-0 gap-2" id="featured-post-author-info">

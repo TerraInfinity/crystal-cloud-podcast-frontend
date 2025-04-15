@@ -1,15 +1,11 @@
 /**
  * app\pages\HomePage.tsx
  * The main home page component that displays featured posts and a grid of blog posts.
- * It fetches blog data and thumbnails from the backend API using React Query for caching and state management.
- * Renders the page layout even if the API request fails, displaying an error message when needed.
+ * Fetches blog data and thumbnails from the backend API using React Query.
+ * Sorts blogs chronologically (newest first) by "createdAt" and handles NSFW content restrictions.
  *
  * @component
  * @returns {JSX.Element} The rendered home page component.
- *
- * @example
- * // Usage of HomePage component
- * <HomePage />
  */
 import React, { useEffect, useState, useMemo } from 'react';
 import Layout from './components/common/Layout';
@@ -18,7 +14,7 @@ import BlogPostGrid from './components/BlogListPage/BlogPostGrid';
 import type { BlogPost } from '../types/blog';
 import axios, { AxiosError } from 'axios';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAllThumbnails } from '../utils/imageUtils'; // Adjust path as needed
+import { fetchAllThumbnails } from '../utils/imageUtils';
 
 // Define the expected shape of the error response
 interface ErrorResponse {
@@ -29,6 +25,9 @@ export const HomePage = () => {
   // State for thumbnails
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [thumbnailLoading, setThumbnailLoading] = useState(true);
+
+  // Check NSFW disclaimer acceptance from sessionStorage
+  const nsfwDisclaimerAccepted = sessionStorage.getItem("NSFW-Disclaimer-Accepted") === 'true';
 
   // Log environment variables for debugging
   console.log('Environment variables:', {
@@ -58,19 +57,8 @@ export const HomePage = () => {
           headers: expectedHeaders,
         });
 
-        // Log successful response with header comparison
-        const receivedHeaders = response.headers;
         console.log('✅ Response received:', {
           status: response.status,
-          headers: {
-            contentType: receivedHeaders['content-type'] || 'Not set',
-            contentEncoding: receivedHeaders['content-encoding'] || 'none',
-            corsOrigin: receivedHeaders['access-control-allow-origin'] || 'Not set',
-            corsMethods: receivedHeaders['access-control-allow-methods'] || 'Not set',
-            corsHeaders: receivedHeaders['access-control-allow-headers'] || 'Not set',
-          },
-          expectedContentType: 'application/json',
-          matchesContentType: (receivedHeaders['content-type'] || '').includes('application/json'),
           dataLength: Array.isArray(response.data) ? response.data.length : 'Not an array',
         });
 
@@ -82,25 +70,15 @@ export const HomePage = () => {
         return response.data;
       } catch (error) {
         if (error instanceof AxiosError) {
-          // Log detailed error information
           console.error('🛑 Axios error:', {
             message: error.message,
             code: error.code,
             status: error.response?.status,
-            responseHeaders: error.response?.headers || 'No response headers',
-            requestHeaders: error.config?.headers,
-            expectedHeaders,
-            matchesAccept: error.config?.headers?.Accept === expectedHeaders.Accept,
-            url: error.config?.url,
-            isNetworkError: !error.response,
             responseData: error.response?.data || 'No response data',
           });
           throw error;
         }
-        console.error('🛑 Unexpected error:', {
-          message: (error as Error).message,
-          stack: (error as Error).stack,
-        });
+        console.error('🛑 Unexpected error:', error);
         throw new Error('Failed to fetch blog posts');
       }
     },
@@ -116,13 +94,32 @@ export const HomePage = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Sort blogs in descending order by createdAt to show newest first
+  // Sort blogs in descending order by createdAt (newest first) and validate dates
   const sortedBlogs = useMemo(() => {
-    return [...blogs].sort((a, b) => {
+    // Filter out blogs with invalid createdAt dates
+    const validBlogs = blogs.filter(blog => {
+      const date = new Date(blog.createdAt);
+      const isValid = !isNaN(date.getTime());
+      if (!isValid) {
+        console.warn(`Invalid createdAt date for blog ID ${blog.id}: ${blog.createdAt}`);
+      }
+      return isValid;
+    });
+
+    const sorted = [...validBlogs].sort((a, b) => {
       const dateA = new Date(a.createdAt);
       const dateB = new Date(b.createdAt);
-      return dateB.getTime() - dateA.getTime();
+      return dateB.getTime() - dateA.getTime(); // Descending order (newest first)
     });
+
+    // Log sorted order for verification
+    console.log('Sorted blogs by createdAt (newest first):', sorted.map(blog => ({
+      id: blog.id,
+      createdAt: blog.createdAt,
+      title: blog.title
+    })));
+
+    return sorted;
   }, [blogs]);
 
   // Fetch thumbnails when blogs are loaded
@@ -145,48 +142,29 @@ export const HomePage = () => {
     loadThumbnails();
   }, [sortedBlogs]);
 
-  // Add logging to inspect the fetched blogs
-  console.log('Fetched blogs:', sortedBlogs);
-
   // Check for malformed data
   const invalidBlogs = sortedBlogs.filter(blog => !blog || !blog.id || !blog.title);
   if (invalidBlogs.length > 0) {
     console.error('Invalid blog entries found:', invalidBlogs);
   }
 
-  // Check for unique id values
+  // Check for duplicate IDs
   const ids = sortedBlogs.map(blog => blog.id);
   const uniqueIds = new Set(ids);
   if (uniqueIds.size !== ids.length) {
-    console.error('Duplicate blog ids found:', ids);
+    console.error('Duplicate blog IDs found:', ids);
   }
 
   // Determine error message for display
   let errorMessage: string | null = null;
   if (error) {
     if (error.response) {
-      console.error('Error response details:', {
-        status: error.response.status,
-        headers: error.response.headers,
-        data: error.response.data,
-      });
-      if (error.response.status === 404) {
-        errorMessage = 'Blog posts not found. Please try again later.';
-      } else if (error.response.status >= 500) {
-        errorMessage = 'Server error. Please try again later.';
-      } else if (error.response.status === 403) {
-        errorMessage = 'Access denied. This may be due to a server CORS configuration issue.';
-      } else {
-        errorMessage = `Error: ${error.response.status} - ${
-          error.response.data?.message || error.message
-        }`;
-      }
+      errorMessage = error.response.status === 404
+        ? 'Blog posts not found. Please try again later.'
+        : error.response.status >= 500
+        ? 'Server error. Please try again later.'
+        : `Error: ${error.response.status} - ${error.response.data?.message || error.message}`;
     } else {
-      console.error('Network error details:', {
-        message: error.message,
-        code: error.code,
-        url: error.config?.url,
-      });
       errorMessage = 'Unable to connect to the server. Please try again later.';
     }
   }
@@ -251,8 +229,14 @@ export const HomePage = () => {
           blogs={sortedBlogs.filter((blog) => blog.featured)}
           thumbnails={thumbnails}
           logoUrls={logoUrls}
+          nsfwDisclaimerAccepted={nsfwDisclaimerAccepted}
         />
-        <BlogPostGrid id="blog-posts-grid" blogs={sortedBlogs} thumbnails={thumbnails} />
+        <BlogPostGrid
+          id="blog-posts-grid"
+          blogs={sortedBlogs}
+          thumbnails={thumbnails}
+          nsfwDisclaimerAccepted={nsfwDisclaimerAccepted}
+        />
       </div>
     </Layout>
   );

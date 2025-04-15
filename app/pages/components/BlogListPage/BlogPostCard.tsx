@@ -3,16 +3,13 @@ import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../../types/blog';
 import { useValidImageUrl } from '../../../hooks/useValidImageUrl';
 
-/**
- * BlogPostCard component displays a blog post with its details including title, author, date, and media.
- * Assumes that the post is visible to the user based on backend filtering of posts according to user preferences.
- *
- * @param {Object} props - The props for the component.
- * @param {BlogPost} props.blog - The blog post object containing all necessary details.
- * @param {string} props.thumbnail - The thumbnail URL for the blog post.
- */
-const BlogPostCard = ({ blog, thumbnail }: { blog: BlogPost; thumbnail: string }) => {
-  // Destructure fields from the blog object
+interface BlogPostCardProps {
+  blog: BlogPost;
+  thumbnail: string;
+  nsfwDisclaimerAccepted: boolean;
+}
+
+const BlogPostCard = ({ blog, thumbnail, nsfwDisclaimerAccepted }: BlogPostCardProps) => {
   const {
     id,
     title,
@@ -27,43 +24,39 @@ const BlogPostCard = ({ blog, thumbnail }: { blog: BlogPost; thumbnail: string }
     blogComments,
   } = blog;
 
-  // Placeholder logo and default image
   const placeholderLogo = '/assets/images/logo.png';
   const defaultImage = isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg';
 
-  // Normalize authorLogo to ensure it's an absolute URL
   const normalizedAuthorLogo = authorLogo && !authorLogo.match(/^https?:\/\//) ? `https://${authorLogo}` : authorLogo;
-
-  // Use custom hook to validate and get the author logo URL
   const logoUrl = useValidImageUrl(normalizedAuthorLogo, placeholderLogo);
-
-  // Use provided thumbnail or fallback to default
   const safeThumbnailUrl = thumbnail || defaultImage;
 
-  // Determine media type and color
   const mediaType = videoUrl && audioUrl ? 'Audio/Video' : videoUrl ? 'Video' : audioUrl ? 'Audio' : null;
   const mediaColor = videoUrl && audioUrl ? 'bg-purple-600' : videoUrl ? 'bg-teal-500' : audioUrl ? 'bg-orange-500' : '';
 
-  return (
-    <Link to={`/blog/${id}`} className="overflow-hidden rounded-lg bg-slate-800 shadow-md" id={`blog-post-link-${id}`}>
-      {/* Image Container */}
+  const isRestricted = isAgeRestricted && !nsfwDisclaimerAccepted;
+
+  const content = (
+    <div className="block" id={`blog-post-content-${id}`}>
       <div className="relative h-[200px] w-full" id={`blog-media-container-${id}`}>
-        {safeThumbnailUrl && (
-          <img
-            src={safeThumbnailUrl}
-            alt="Blog post thumbnail"
-            className="absolute inset-0 w-full h-full object-fill"
-            id={`blog-post-image-${id}`}
-          />
-        )}
+        <img
+          src={safeThumbnailUrl}
+          alt="Blog post thumbnail"
+          className={`absolute inset-0 w-full h-full object-fill ${isRestricted ? 'blur-sm' : ''}`}
+          id={`blog-post-image-${id}`}
+        />
         {isAgeRestricted && (
           <div className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 bg-black rounded-full text-red-500" id={`age-restricted-label-${id}`}>
             18+
           </div>
         )}
+        {isRestricted && (
+          <div className="absolute inset-0 flex items-center justify-center text-white text-xl bg-black bg-opacity-50">
+            Age Restricted
+          </div>
+        )}
       </div>
-      {/* Content Container */}
-      <div className="p-4" id={`blog-content-container-${id}`}>
+      <div className={`p-4 ${isRestricted ? 'blur-sm' : ''}`} id={`blog-content-container-${id}`}>
         <h3 className="text-white text-xl font-semibold mb-2 truncate" id={`blog-title-${id}`}>
           {typeof title === 'string' ? title : 'Untitled'}
         </h3>
@@ -106,6 +99,16 @@ const BlogPostCard = ({ blog, thumbnail }: { blog: BlogPost; thumbnail: string }
           )}
         </div>
       </div>
+    </div>
+  );
+
+  return isRestricted ? (
+    <div className="overflow-hidden rounded-lg bg-slate-800 shadow-md" id={`blog-post-container-${id}`}>
+      {content}
+    </div>
+  ) : (
+    <Link to={`/blog/${id}`} className="overflow-hidden rounded-lg bg-slate-800 shadow-md" id={`blog-post-link-${id}`}>
+      {content}
     </Link>
   );
 };
