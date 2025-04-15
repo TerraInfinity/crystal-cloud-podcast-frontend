@@ -137,18 +137,21 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
 
   const currentBlog = blogs[currentIndex];
 
+  // Debugging logs
+  console.log('Current blog:', currentBlog);
+  const currentThumbnail = thumbnailQueries[currentIndex]?.data || currentBlog.blogImage || '';
+  console.log('Current thumbnail:', currentThumbnail);
+  console.log('Logo URL:', logoUrls[currentBlog.id]);
+
   // Top-level validation for currentBlog
-  if (!currentBlog || typeof currentBlog !== 'object' || !currentBlog.id) {
-    console.error('FeaturedPost Error: Invalid currentBlog at index:', currentIndex);
+  if (!currentBlog || typeof currentBlog !== 'object' || !currentBlog.id || !currentBlog.title || !currentBlog.blogSummary) {
+    console.error('FeaturedPost Error: Invalid currentBlog at index:', currentIndex, 'Blog:', currentBlog);
     return (
       <div className="text-center p-4 bg-gray-100 rounded-lg">
         <p className="text-red-500">Error: Invalid featured post data.</p>
       </div>
     );
   }
-
-  // Use the data from the thumbnail queries
-  const currentThumbnail = thumbnailQueries[currentIndex].data || currentBlog.blogImage || '';
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
   const pathColor = getPathColor(currentBlog.pathId || '');
