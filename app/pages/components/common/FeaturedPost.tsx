@@ -48,21 +48,25 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
     setCurrentIndex(0);
   }, [blogs]);
 
-  // Fetch thumbnails for all blogs using useQueries
+  // Fetch thumbnails for all blogs using useQueries, matching BlogPostCard
   const thumbnailQueries = useQueries({
-    queries: blogs.map((blog) => ({
-      queryKey: [
-        'thumbnail',
-        blog.id,
-        blog.videoUrl || '',
-        blog.blogImage || '',
-        blog.embedUrl || '',
-        blog.postUrl || '',
-        blog.isAgeRestricted ? 'true' : 'false',
-      ],
-      queryFn: () => fetchThumbnail(blog),
-      placeholderData: blog.blogImage, // Use blog.blogImage as placeholder
-    })),
+    queries: blogs.map((blog) => {
+      // Define defaultImage locally for each blog, matching BlogPostCard
+      const defaultImage = blog.isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg';
+      return {
+        queryKey: [
+          'thumbnail',
+          blog.id,
+          blog.videoUrl || '',
+          blog.blogImage || '',
+          blog.embedUrl || '',
+          blog.postUrl || '',
+          blog.isAgeRestricted ? 'true' : 'false',
+        ],
+        queryFn: () => fetchThumbnail(blog),
+        placeholderData: blog.blogImage || defaultImage,
+      };
+    }),
   });
 
   // Use useValidImageUrl for each blog's author logo
@@ -90,7 +94,10 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
   }
 
   const currentBlog = blogs[currentIndex];
-  const currentThumbnail = thumbnailQueries[currentIndex]?.data || placeholderLogo; // Fallback to placeholderLogo if query unresolved
+  // Ensure thumbnail is a string, matching BlogPostCard's safeThumbnailUrl
+  const currentThumbnail = typeof thumbnailQueries[currentIndex]?.data === 'string'
+    ? thumbnailQueries[currentIndex]?.data
+    : (currentBlog.blogImage || (currentBlog.isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg'));
   const currentLogo = logoUrls[currentIndex];
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
