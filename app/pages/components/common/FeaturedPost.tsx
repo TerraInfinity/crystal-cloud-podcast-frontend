@@ -102,7 +102,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails,
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
   const pathColor = getPathColor(currentBlog.pathId || '');
-  const safeThumbnailUrl = thumbnails[currentBlog.id] || currentBlog.blogImage || getDefaultImage(currentBlog.isAgeRestricted);
+  const safeThumbnailUrl = thumbnails[currentBlog.id] || currentBlog.blogImage || getDefaultImage(currentBlog.isAgeRestricted ?? false);
 
   const handleDotClick = (index: number) => {
     setCurrentIndex(index);
