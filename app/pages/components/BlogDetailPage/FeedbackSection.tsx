@@ -27,7 +27,7 @@ interface Comment {
   rating?: number;
   date?: string;
   userId?: string;
-  User?: User;
+  User?: { name: string };
 }
 
 interface AuthContextType {

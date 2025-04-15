@@ -230,9 +230,9 @@ export function BlogDetailPage(): JSX.Element {
           <BlogContent blog={{ ...blog, summary: blog.blogSummary }} />
         </div>
       )}
-      <div id="blog-feedback-section">
-        <FeedbackSection isLoggedIn={isAuthenticated} comments={comments} blogId={blog.id} />
-      </div>
+        <div id="blog-feedback-section">
+          <FeedbackSection comments={comments} blogId={blog.id} />
+        </div>
     </Layout>
   );
 }
