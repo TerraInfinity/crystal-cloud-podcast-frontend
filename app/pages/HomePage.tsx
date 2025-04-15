@@ -205,7 +205,7 @@ export const HomePage = () => {
           id="featured-posts-section"
           blogs={blogs.filter((blog) => blog.featured)}
         />*/}
-       {/* <BlogPostGrid id="blog-posts-grid" blogs={blogs} /> */}
+        <BlogPostGrid id="blog-posts-grid" blogs={blogs} /> 
       </div>
     </Layout>
   );
