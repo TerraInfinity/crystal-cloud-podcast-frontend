@@ -1,6 +1,8 @@
 import { FaComments } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../../types/blog';
+import { useQuery } from '@tanstack/react-query';
+import { fetchThumbnail } from '../../../utils/imageUtils';
 import { useValidImageUrl } from '../../../hooks/useValidImageUrl';
 
 /**
@@ -9,9 +11,8 @@ import { useValidImageUrl } from '../../../hooks/useValidImageUrl';
  *
  * @param {Object} props - The props for the component.
  * @param {BlogPost} props.blog - The blog post object containing all necessary details.
- * @param {string} props.thumbnail - The thumbnail URL for the blog post.
  */
-const BlogPostCard = ({ blog, thumbnail }: { blog: BlogPost; thumbnail: string }) => {
+const BlogPostCard = ({ blog }: { blog: BlogPost }) => {
   // Destructure fields from the blog object
   const {
     id,
@@ -19,6 +20,7 @@ const BlogPostCard = ({ blog, thumbnail }: { blog: BlogPost; thumbnail: string }
     authorName,
     authorLogo,
     createdAt,
+    blogImage,
     isAgeRestricted,
     videoUrl,
     audioUrl,
@@ -37,12 +39,33 @@ const BlogPostCard = ({ blog, thumbnail }: { blog: BlogPost; thumbnail: string }
   // Use custom hook to validate and get the author logo URL
   const logoUrl = useValidImageUrl(normalizedAuthorLogo, placeholderLogo);
 
-  // Use provided thumbnail or fallback to default
-  const safeThumbnailUrl = thumbnail || defaultImage;
+  // Fetch thumbnail using React Query
+  const { data: thumbnailUrl } = useQuery<string | null>({
+    queryKey: [
+      'thumbnail',
+      id,
+      blog.videoUrl || '',
+      blog.blogImage || '',
+      blog.embedUrl || '',
+      blog.postUrl || '',
+      isAgeRestricted ? 'true' : 'false',
+    ],
+    queryFn: () => fetchThumbnail(blog),
+    placeholderData: blog.blogImage || defaultImage,
+  });
 
   // Determine media type and color
   const mediaType = videoUrl && audioUrl ? 'Audio/Video' : videoUrl ? 'Video' : audioUrl ? 'Audio' : null;
   const mediaColor = videoUrl && audioUrl ? 'bg-purple-600' : videoUrl ? 'bg-teal-500' : audioUrl ? 'bg-orange-500' : '';
+
+  // Handle image loading errors (optional customization)
+  const handleImageError = () => {
+    // This can be expanded if additional error handling is needed
+    // Currently, useQuery's fallback handles most cases
+  };
+
+  // Ensure thumbnailUrl is a string
+  const safeThumbnailUrl = typeof thumbnailUrl === 'string' ? thumbnailUrl : defaultImage;
 
   return (
     <Link to={`/blog/${id}`} className="overflow-hidden rounded-lg bg-slate-800 shadow-md" id={`blog-post-link-${id}`}>
@@ -53,6 +76,7 @@ const BlogPostCard = ({ blog, thumbnail }: { blog: BlogPost; thumbnail: string }
             src={safeThumbnailUrl}
             alt="Blog post thumbnail"
             className="absolute inset-0 w-full h-full object-fill"
+            onError={handleImageError}
             id={`blog-post-image-${id}`}
           />
         )}

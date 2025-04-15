@@ -3,6 +3,9 @@ import axios from 'axios';
 import type { BlogPost } from '../types/blog'; // Adjust the path if necessary
 import { logGroupedMessage } from './consoleGroupLogger'; // Adjust path if necessary
 
+// In-memory cache to store thumbnail URLs
+const thumbnailCache: Record<string, string> = {};
+
 /**
  * Extracts the YouTube video ID from a given URL.
  * @param url - The URL of the YouTube video.
@@ -19,7 +22,7 @@ const getYouTubeID = (url: string): string | null => {
  * @param isAgeRestricted - A boolean indicating if the content is age-restricted.
  * @returns The URL of the default image.
  */
-const getDefaultImage = (isAgeRestricted: boolean): string =>
+export const getDefaultImage = (isAgeRestricted: boolean): string =>
   isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg';
 
 /**
@@ -58,21 +61,24 @@ export const normalizeUrl = (url?: string): string | null => {
  * Fetches a thumbnail URL for a given blog post.
  * @param blog - The blog post object containing video and image URLs.
  * @returns A promise resolving to the thumbnail URL or a default image if unavailable.
- * @throws {Error} If the fetch fails or the URL is invalid.
  */
 export const fetchThumbnail = async (blog: BlogPost): Promise<string> => {
   const { videoUrl, blogImage, isAgeRestricted = false, embedUrl, postUrl, id } = blog;
 
-  // Prioritize videoUrl, then embedUrl, then postUrl for video content
+  // Check if thumbnail is already cached
+  if (thumbnailCache[id]) {
+    return thumbnailCache[id];
+  }
+
   const urlToCheck = normalizeUrl(videoUrl) || normalizeUrl(embedUrl) || normalizeUrl(postUrl);
 
   if (urlToCheck) {
     const youtubeId = getYouTubeID(urlToCheck);
     if (youtubeId) {
-      // Immediate return for YouTube thumbnails
-      return `https://img.youtube.com/vi/${youtubeId}/0.jpg`;
+      const thumbnailUrl = `https://img.youtube.com/vi/${youtubeId}/0.jpg`;
+      thumbnailCache[id] = thumbnailUrl; // Cache it
+      return thumbnailUrl;
     } else {
-      // API call for non-YouTube videos
       const apiUrl = `${
         import.meta.env.VITE_VERCEL_ENV === 'true'
           ? import.meta.env.VITE_FRONTEND_URL
@@ -80,7 +86,9 @@ export const fetchThumbnail = async (blog: BlogPost): Promise<string> => {
       }/api/proxy-thumbnail?url=${encodeURIComponent(urlToCheck)}`;
       try {
         const response = await axios.get<{ thumbnail: string }>(apiUrl);
-        return response.data.thumbnail || blogImage || getDefaultImage(isAgeRestricted);
+        const thumbnailUrl = response.data.thumbnail || blogImage || getDefaultImage(isAgeRestricted);
+        thumbnailCache[id] = thumbnailUrl; // Cache it
+        return thumbnailUrl;
       } catch (error) {
         const errorMessage = (error as Error).message;
         logGroupedMessage(
@@ -89,12 +97,41 @@ export const fetchThumbnail = async (blog: BlogPost): Promise<string> => {
           'error',
           true
         );
-        return blogImage || getDefaultImage(isAgeRestricted);
+        const fallback = blogImage || getDefaultImage(isAgeRestricted);
+        thumbnailCache[id] = fallback; // Cache the fallback
+        return fallback;
       }
     }
   } else if (blogImage) {
+    thumbnailCache[id] = blogImage; // Cache it
     return blogImage;
   } else {
-    return getDefaultImage(isAgeRestricted);
+    const defaultImg = getDefaultImage(isAgeRestricted);
+    thumbnailCache[id] = defaultImg; // Cache it
+    return defaultImg;
   }
+};
+
+/**
+ * Fetches thumbnails for all blog posts and caches them.
+ * @param blogs - Array of blog posts.
+ * @returns A promise resolving to a map of blog IDs to thumbnail URLs.
+ */
+export const fetchAllThumbnails = async (blogs: BlogPost[]): Promise<Record<string, string>> => {
+  const thumbnails: Record<string, string> = {};
+  const fetchPromises = blogs.map(async (blog) => {
+    const thumbnail = await fetchThumbnail(blog);
+    thumbnails[blog.id] = thumbnail;
+  });
+
+  await Promise.all(fetchPromises);
+  return thumbnails;
+};
+
+/**
+ * Gets cached thumbnails without refetching.
+ * @returns The current thumbnail cache.
+ */
+export const getCachedThumbnails = (): Record<string, string> => {
+  return { ...thumbnailCache };
 };

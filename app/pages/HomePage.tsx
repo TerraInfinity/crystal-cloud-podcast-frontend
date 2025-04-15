@@ -1,7 +1,7 @@
 /**
  * app\pages\HomePage.tsx
  * The main home page component that displays featured posts and a grid of blog posts.
- * It fetches blog data from the backend API using React Query for caching and state management.
+ * It fetches blog data and thumbnails from the backend API using React Query for caching and state management.
  * Renders the page layout even if the API request fails, displaying an error message when needed.
  *
  * @component
@@ -11,13 +11,14 @@
  * // Usage of HomePage component
  * <HomePage />
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from './components/common/Layout';
 import FeaturedPost from './components/common/FeaturedPost';
 import BlogPostGrid from './components/BlogListPage/BlogPostGrid';
 import type { BlogPost } from '../types/blog';
 import axios, { AxiosError } from 'axios';
 import { useQuery } from '@tanstack/react-query';
+import { fetchAllThumbnails } from '../utils/imageUtils'; // Adjust path as needed
 
 // Define the expected shape of the error response
 interface ErrorResponse {
@@ -25,6 +26,10 @@ interface ErrorResponse {
 }
 
 export const HomePage = () => {
+  // State for thumbnails
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+  const [thumbnailLoading, setThumbnailLoading] = useState(true);
+
   // Log environment variables for debugging
   console.log('Environment variables:', {
     VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'undefined',
@@ -111,9 +116,29 @@ export const HomePage = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Fetch thumbnails when blogs are loaded
+  useEffect(() => {
+    const loadThumbnails = async () => {
+      if (blogs.length > 0) {
+        setThumbnailLoading(true);
+        try {
+          const fetchedThumbnails = await fetchAllThumbnails(blogs);
+          setThumbnails(fetchedThumbnails);
+        } catch (error) {
+          console.error('Failed to fetch thumbnails:', error);
+        } finally {
+          setThumbnailLoading(false);
+        }
+      } else {
+        setThumbnailLoading(false);
+      }
+    };
+    loadThumbnails();
+  }, [blogs]);
+
   // Add logging to inspect the fetched blogs
   console.log('Fetched blogs:', blogs);
-  
+
   // Check for malformed data
   const invalidBlogs = blogs.filter(blog => !blog || !blog.id || !blog.title);
   if (invalidBlogs.length > 0) {
@@ -161,7 +186,7 @@ export const HomePage = () => {
     <Layout title="The Bambi Cloud Podcast" id="home-page-layout">
       <div id="home-page-content" className="relative">
         {/* Loading overlay */}
-        {isLoading && (
+        {(isLoading || thumbnailLoading) && (
           <div
             id="loading-message"
             className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 z-10"
@@ -201,12 +226,13 @@ export const HomePage = () => {
           </div>
         )}
         {/* Main content */}
-         <FeaturedPost
+        {/*<FeaturedPost
           id="featured-posts-section"
           blogs={blogs.filter((blog) => blog.featured)}
-        />
-        <BlogPostGrid id="blog-posts-grid" blogs={blogs} /> 
+          thumbnails={thumbnails}
+        /> */}
+        <BlogPostGrid id="blog-posts-grid" blogs={blogs} thumbnails={thumbnails} />
       </div>
     </Layout>
   );
-}; 
+};

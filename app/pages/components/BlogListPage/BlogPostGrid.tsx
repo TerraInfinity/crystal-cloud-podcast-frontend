@@ -5,8 +5,9 @@ import type { BlogPost } from '../../../types/blog'; // Use type-only import
  * Props interface for the BlogPostGrid component.
  */
 interface BlogPostGridProps {
-    id: string;
-    blogs: BlogPost[]; // Array of blog post objects
+  id: string;
+  blogs: BlogPost[]; // Array of blog post objects
+  thumbnails: Record<string, string>; // Map of blog IDs to thumbnail URLs
 }
 
 /**
@@ -14,9 +15,11 @@ interface BlogPostGridProps {
  *
  * Renders a responsive grid layout of blog posts using the data provided via the `blogs` prop.
  * Displays the latest blog posts in a grid, with each post rendered using the BlogPostCard component.
+ * Passes pre-fetched thumbnails to each BlogPostCard for efficient rendering.
  *
  * @param {BlogPostGridProps} props - The component props
  * @param {BlogPost[]} props.blogs - Array of blog post objects (defaults to empty array)
+ * @param {Record<string, string>} props.thumbnails - Map of blog IDs to thumbnail URLs
  *
  * @component
  * @example
@@ -36,16 +39,17 @@ interface BlogPostGridProps {
  *     blogComments: []
  *   }
  * ];
+ * const thumbnails = { '1': 'url_to_thumbnail' };
  *
- * <BlogPostGrid blogs={blogs} />
+ * <BlogPostGrid id="grid-id" blogs={blogs} thumbnails={thumbnails} />
  *
  * @author Bad Wolf
- * @version 1.3
+ * @version 1.4
  * @since 2025-03-22
  */
-const BlogPostGrid = ({ blogs = [] }: BlogPostGridProps) => {
+const BlogPostGrid = ({ id, blogs = [], thumbnails }: BlogPostGridProps) => {
   return (
-    <div className="px-20 py-0 max-md:px-10 max-md:py-0 max-sm:px-5 max-sm:py-0" id="blog-post-grid-container">
+    <div className="px-20 py-0 max-md:px-10 max-md:py-0 max-sm:px-5 max-sm:py-0" id={id}>
       <h2 className="mb-8 text-2xl text-white" id="latest-posts-title">Latest Posts</h2>
       <div className="grid gap-6 mb-10 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" id="blog-posts-grid">
         {blogs.length > 0 ? (
@@ -55,6 +59,7 @@ const BlogPostGrid = ({ blogs = [] }: BlogPostGridProps) => {
               <BlogPostCard
                 key={blog.id}
                 blog={blog}
+                thumbnail={thumbnails[blog.id] || ''} // Pass thumbnail, fallback to empty string
                 data-testid={`blog-post-${blog.id}`}
               />
             ))
