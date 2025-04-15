@@ -99,7 +99,7 @@ const LandingDisclaimerModal = ({
             </button>
             <button
               id="accept-disclaimer-button"
-              className="w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg opacity-50 cursor-not-allowed"
+              className="w-full bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg opacity-50 cursor-not-allowed"
               aria-label="Accept disclaimer (NSFW)"
               style={{ fontSize: '1rem' }}
               disabled={true}
