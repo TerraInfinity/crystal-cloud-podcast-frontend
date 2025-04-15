@@ -3,9 +3,10 @@ import { FaComments } from 'react-icons/fa';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../../types/blog'; // Use type-only import for BlogPost
-
-// Utility for grouped logging (assume this exists in your project)
+import { checkImageExists } from '../../../utils/imageUtils'; // Adjust the import path as needed
 import { logGroupedMessage } from '../../../utils/consoleGroupLogger'; // Adjust path as needed
+import { useQuery } from '@tanstack/react-query'; // New import
+import { fetchThumbnail } from '../../../utils/imageUtils'; // Adjust the import path as needed
 
 /**
  * Interface for FeaturedPost component props.
@@ -55,18 +56,6 @@ const getYouTubeID = (url: string): string | null => {
 };
 
 /**
- * Checks if an image URL exists using the Image object.
- */
-const checkImageExists = (url: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = url;
-  });
-};
-
-/**
  * FeaturedPost Component
  */
 const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
@@ -91,83 +80,49 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   // Preload author logos
   useEffect(() => {
     const preloadLogos = async () => {
-      const logoPromises = blogs.map(async (blog) => {
+      const subset = blogs.slice(
+        Math.max(0, currentIndex - 1), // Get the previous blog if it exists
+        currentIndex + 2 // Get the current and next blog
+      );
+      const logoPromises = subset.map(async (blog) => {
         const normalizedAuthorLogo = blog.authorLogo && !blog.authorLogo.match(/^https?:\/\//)
           ? `https://${blog.authorLogo}`
           : blog.authorLogo;
-        if (!normalizedAuthorLogo) {
-          logGroupedMessage(
-            'Author Logo Issues',
-            `No valid author logo for blog "${blog.title}" (ID: ${blog.id}). Using placeholder: ${placeholderLogo}`
-          );
-          return { id: blog.id, logo: placeholderLogo };
-        }
-        const exists = await checkImageExists(normalizedAuthorLogo);
-        if (exists) {
-          return { id: blog.id, logo: normalizedAuthorLogo };
-        } else {
-          logGroupedMessage(
-            'Author Logo Issues',
-            `Logo at "${normalizedAuthorLogo}" not found for blog "${blog.title}" (ID: ${blog.id}). Using placeholder: ${placeholderLogo}`
-          );
-          return { id: blog.id, logo: placeholderLogo };
-        }
+        const exists = normalizedAuthorLogo ? await checkImageExists(normalizedAuthorLogo) : false;
+        return { id: blog.id, logo: exists ? normalizedAuthorLogo : placeholderLogo };
       });
       const logoResults = await Promise.all(logoPromises);
       const newLogoUrls = logoResults.reduce((acc, { id, logo }) => {
-        acc[id] = logo;
+        acc[id] = logo || placeholderLogo;
         return acc;
       }, {} as Record<string, string>);
-      setLogoUrls(newLogoUrls);
+      setLogoUrls((prev) => ({ ...prev, ...newLogoUrls })); // Update only the logos that were preloaded
     };
     preloadLogos();
-  }, [blogs, placeholderLogo]);
+  }, [blogs, currentIndex, placeholderLogo]); // Add currentIndex to the dependency array
 
-  // Fetch thumbnails
-  useEffect(() => {
-    const fetchThumbnails = async () => {
-      const apiUrl = `${import.meta.env.VITE_BACKEND_URL || 'https://backend.terrainfinity.ca'}/api/`;
-      const newThumbnails: Record<string, string> = {};
-      if (!Array.isArray(blogs)) return;
-      for (const blog of blogs) {
-        if (blog.videoUrl) {
-          const youtubeId = getYouTubeID(blog.videoUrl);
-          if (youtubeId) {
-            newThumbnails[blog.id] = `https://img.youtube.com/vi/${youtubeId}/0.jpg`;
-          } else {
-            try {
-              const response = await axios.get<{ thumbnail: string }>(
-                `${apiUrl}proxy-thumbnail?url=${encodeURIComponent(blog.videoUrl)}`
-              );
-              newThumbnails[blog.id] = response.data.thumbnail || blog.blogImage || '';
-            } catch (error) {
-              newThumbnails[blog.id] = blog.blogImage || '';
-            }
-          }
-        } else {
-          newThumbnails[blog.id] = blog.blogImage || '';
-        }
-      }
-      if (JSON.stringify(newThumbnails) !== JSON.stringify(thumbnails)) {
-        setThumbnails(newThumbnails);
-      }
-    };
-    fetchThumbnails();
-  }, [blogs, thumbnails]);
+  // Fetch thumbnails using useQuery
+  const thumbnailQueries = blogs.map((blog) =>
+    useQuery<string | null>({
+      queryKey: ['thumbnail', blog.id],
+      queryFn: () => (blog.videoUrl ? fetchThumbnail(blog) : null),
+      enabled: !!blog.videoUrl,
+    })
+  );
 
-  // Carousel interval
+  // Automatically cycle through featured blogs every 5 seconds unless paused
   useEffect(() => {
     if (blogs.length > 0 && !isPaused) {
       const interval = setInterval(() => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % blogs.length);
       }, 5000);
-      return () => clearInterval(interval);
+      return () => clearInterval(interval); // Clean up interval on unmount or when dependencies change
     }
   }, [blogs, isPaused]);
 
   // Handle empty or invalid blogs prop
   if (!Array.isArray(blogs)) {
-    console.warn('FeaturedPost received invalid blogs prop:', blogs);
+    logGroupedMessage('FeaturedPost Warning', `Invalid blogs prop: ${JSON.stringify(blogs)}`, 'warn', true);
     return (
       <div className="text-center p-4 bg-gray-100 rounded-lg">
         <p className="text-red-500">Error: Invalid blogs data.</p>
@@ -183,13 +138,16 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
 
   const currentBlog = blogs[currentIndex];
   if (!currentBlog) {
-    console.error('Current blog is undefined at index:', currentIndex);
+    logGroupedMessage('FeaturedPost Error', `Current blog is undefined at index: ${currentIndex}`, 'error', true);
     return (
       <div className="text-center p-4 bg-gray-100 rounded-lg">
         <p className="text-red-500">Error: Unable to load featured post.</p>
       </div>
     );
   }
+
+  // Use the data from the thumbnail queries
+  const currentThumbnail = thumbnailQueries[currentIndex].data || currentBlog.blogImage || '';
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
   const pathColor = getPathColor(currentBlog.pathId || '');
@@ -223,7 +181,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
       <div className="w-screen" id="featured-post-media">
         <img
           id="featured-post-thumbnail"
-          src={thumbnails[currentBlog.id] || currentBlog.blogImage || ''}
+          src={currentThumbnail}
           alt={currentBlog.title}
           className="w-full h-auto max-h-[35vh]"
         />

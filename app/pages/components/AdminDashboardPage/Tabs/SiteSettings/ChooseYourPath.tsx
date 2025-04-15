@@ -12,6 +12,7 @@ interface Path {
 interface ChooseYourPathProps {
   onSelectPath: (path: string) => void;
   selectedPath: string;
+  id?: string;
 }
 
 // Enhanced paths array with description and perks

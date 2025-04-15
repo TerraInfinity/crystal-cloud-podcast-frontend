@@ -34,7 +34,11 @@ export interface BlogPost {
   
     /** Optional URL of a video associated with the blog. */
     videoUrl?: string;
-  
+    
+    /** Optional URL of a post associated with the blog. */
+    postUrl?: string;
+
+    
     /** Optional URL of an audio file associated with the blog. */
     audioUrl?: string;
   
