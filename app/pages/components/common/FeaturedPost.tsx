@@ -48,10 +48,9 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
     setCurrentIndex(0);
   }, [blogs]);
 
-  // Fetch thumbnails for all blogs using useQueries, matching BlogPostCard
+  // Fetch thumbnails for all blogs using useQueries
   const thumbnailQueries = useQueries({
     queries: blogs.map((blog) => {
-      // Define defaultImage locally for each blog, matching BlogPostCard
       const defaultImage = blog.isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg';
       return {
         queryKey: [
@@ -93,12 +92,13 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
     );
   }
 
-  const currentBlog = blogs[currentIndex];
-  // Ensure thumbnail is a string, matching BlogPostCard's safeThumbnailUrl
-  const currentThumbnail = typeof thumbnailQueries[currentIndex]?.data === 'string'
-    ? thumbnailQueries[currentIndex]?.data
+  // Safeguard currentIndex
+  const safeIndex = Math.min(currentIndex, blogs.length - 1);
+  const currentBlog = blogs[safeIndex];
+  const currentThumbnail = typeof thumbnailQueries[safeIndex]?.data === 'string'
+    ? thumbnailQueries[safeIndex]?.data
     : (currentBlog.blogImage || (currentBlog.isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg'));
-  const currentLogo = logoUrls[currentIndex];
+  const currentLogo = logoUrls[safeIndex];
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
   const pathColor = getPathColor(currentBlog.pathId || '');
@@ -115,10 +115,7 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
         <h2 className="text-3xl font-semibold" id="featured-post-title">
           {currentBlog.title}
           <span className="text-gray-300"> - </span>
-          <span
-            className="text-gray-400 text-sm max-w-xs truncate"
-            id="featured-post-summary"
-          >
+          <span className="text-gray-400 text-sm max-w-xs truncate" id="featured-post-summary">
             {currentBlog.blogSummary}
           </span>
         </h2>
@@ -132,11 +129,7 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
           alt={currentBlog.title}
           className="w-full h-auto max-h-[35vh]"
         />
-        <Link
-          to={`/blog/${currentBlog.id}`}
-          className="absolute inset-0"
-          id="featured-post-link"
-        >
+        <Link to={`/blog/${currentBlog.id}`} className="absolute inset-0" id="featured-post-link">
           <span className="sr-only">Go to blog post</span>
         </Link>
         {/* Navigation Dots */}
@@ -149,13 +142,13 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
                     key={index}
                     id={`dot-${index}`}
                     className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full cursor-pointer ${
-                      index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
+                      index === safeIndex ? 'bg-blue-500' : 'bg-gray-300'
                     }`}
                     onClick={() => handleDotClick(index)}
                     role="button"
                     tabIndex={0}
                     aria-label={`Go to featured post ${index + 1} of ${blogs.length}`}
-                    aria-current={index === currentIndex ? 'true' : 'false'}
+                    aria-current={index === safeIndex ? 'true' : 'false'}
                     onKeyDown={(e) => e.key === 'Enter' && handleDotClick(index)}
                     style={{ touchAction: 'manipulation' }}
                   />
@@ -170,10 +163,7 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
       <div className="bg-black bg-opacity-50 p-4" id="featured-post-metadata">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           {/* Left: Author and Metadata */}
-          <div
-            className="flex flex-wrap items-center space-x-2 min-w-0 gap-2"
-            id="featured-post-author-info"
-          >
+          <div className="flex flex-wrap items-center space-x-2 min-w-0 gap-2" id="featured-post-author-info">
             <img
               id="featured-post-author-avatar"
               src={currentLogo}
@@ -183,45 +173,27 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
                 e.currentTarget.src = placeholderLogo;
               }}
             />
-            <div
-              className="bg-green-500 rounded p-1"
-              id="featured-post-author-name"
-            >
+            <div className="bg-green-500 rounded p-1" id="featured-post-author-name">
               {currentBlog.authorName || 'Unknown Author'}
             </div>
-            <div
-              className={`${pathColor} rounded p-1 text-white`}
-              id="featured-post-path-name"
-            >
+            <div className={`${pathColor} rounded p-1 text-white`} id="featured-post-path-name">
               {currentBlog.pathId || 'Unknown Path'}
             </div>
             {mediaTag && (
-              <div
-                className={`px-2 py-1 ${mediaColor} rounded text-white flex-shrink-0`}
-                id="featured-post-media-tag"
-              >
+              <div className={`px-2 py-1 ${mediaColor} rounded text-white flex-shrink-0`} id="featured-post-media-tag">
                 {mediaTag}
               </div>
             )}
           </div>
           {/* Right: Comments, Age-Restricted, and Date */}
-          <div
-            className="flex items-center space-x-4 flex-shrink-0"
-            id="featured-post-engagement"
-          >
+          <div className="flex items-center space-x-4 flex-shrink-0" id="featured-post-engagement">
             <div className="flex items-center space-x-2">
-              <div
-                className="text-white flex items-center"
-                id="featured-post-comments"
-              >
+              <div className="text-white flex items-center" id="featured-post-comments">
                 <FaComments className="mr-1" />
                 {currentBlog.blogComments?.length || 0}
               </div>
               {currentBlog.isAgeRestricted && (
-                <div
-                  className="text-red-500 ml-2"
-                  id="featured-post-age-restriction"
-                >
+                <div className="text-red-500 ml-2" id="featured-post-age-restriction">
                   18+
                 </div>
               )}
