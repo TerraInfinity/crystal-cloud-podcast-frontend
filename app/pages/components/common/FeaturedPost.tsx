@@ -6,6 +6,7 @@ import { checkImageExists } from '../../../utils/imageUtils';
 import { logGroupedMessage } from '../../../utils/consoleGroupLogger';
 import { useQuery } from '@tanstack/react-query';
 import { fetchThumbnail } from '../../../utils/imageUtils';
+import { ErrorBoundary } from 'react-error-boundary';
 
 /**
  * Interface for FeaturedPost component props.
@@ -53,6 +54,13 @@ const getYouTubeID = (url: string): string | null => {
   const match = url.match(regExp);
   return match && match[2].length === 11 ? match[2] : null;
 };
+
+// Define the fallback component for error handling
+const ErrorFallback = ({ error }: { error: Error }) => (
+  <div className="text-center p-4 bg-gray-100 rounded-lg">
+    <p className="text-red-500">Something went wrong: {error.message}</p>
+  </div>
+);
 
 /**
  * FeaturedPost Component
@@ -137,6 +145,16 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
 
   const currentBlog = blogs[currentIndex];
 
+  // Memoize mediaTag and pathColor to avoid unnecessary recalculations
+  const { type: mediaTag, color: mediaColor } = React.useMemo(
+    () => getMediaTag(currentBlog),
+    [currentBlog]
+  );
+  const pathColor = React.useMemo(
+    () => getPathColor(currentBlog.pathId || ''),
+    [currentBlog.pathId]
+  );
+
   // Debugging logs
   console.log('Current blog:', currentBlog);
   const currentThumbnail = thumbnailQueries[currentIndex]?.data || currentBlog.blogImage || '';
@@ -153,9 +171,6 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
     );
   }
 
-  const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
-  const pathColor = getPathColor(currentBlog.pathId || '');
-
   const handleDotClick = (index: number) => {
     setCurrentIndex(index);
     setIsPaused(true);
@@ -169,100 +184,102 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   };
 
   return (
-    <div className="relative mb-10" id="featured-post-container">
-      {/* Top Block: Blog Title and Summary */}
-      <div className="p-4 bg-gray-800 text-white" id="featured-post-header">
-        <h2 className="text-3xl font-semibold" id="featured-post-title">
-          {typeof currentBlog.title === 'string' ? currentBlog.title : 'Untitled'}
-          <span className="text-gray-300"> - </span>
-          <span className="text-gray-400 text-sm max-w-xs truncate" id="featured-post-summary">
-            {typeof currentBlog.blogSummary === 'string' ? currentBlog.blogSummary : ''}
-          </span>
-        </h2>
-      </div>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <div className="relative mb-10" id="featured-post-container">
+        {/* Top Block: Blog Title and Summary */}
+        <div className="p-4 bg-gray-800 text-white" id="featured-post-header">
+          <h2 className="text-3xl font-semibold" id="featured-post-title">
+            {typeof currentBlog.title === 'string' ? currentBlog.title : 'Untitled'}
+            <span className="text-gray-300"> - </span>
+            <span className="text-gray-400 text-sm max-w-xs truncate" id="featured-post-summary">
+              {typeof currentBlog.blogSummary === 'string' ? currentBlog.blogSummary : ''}
+            </span>
+          </h2>
+        </div>
 
-      {/* Middle Block: Video Component */}
-      <div className="w-screen" id="featured-post-media">
-        <img
-          id="featured-post-thumbnail"
-          src={currentThumbnail}
-          alt={typeof currentBlog.title === 'string' ? currentBlog.title : 'Untitled'}
-          className="w-full h-auto max-h-[35vh]"
-        />
-        <Link to={`/blog/${currentBlog.id}`} className="absolute inset-0" id="featured-post-link">
-          <span className="sr-only">Go to blog post</span>
-        </Link>
-        {/* Navigation Dots */}
-        <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center">
-          <div className="flex justify-center w-full sm:w-auto">
-            <div className="p-2 rounded-lg">
-              <div className="flex justify-center items-center gap-2 sm:gap-4">
-                {blogs.map((_, index) => (
-                  <div
-                    key={index}
-                    id={`dot-${index}`}
-                    className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full cursor-pointer ${
-                      index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
-                    }`}
-                    onClick={() => handleDotClick(index)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Go to featured post ${index + 1} of ${blogs.length}`}
-                    aria-current={index === currentIndex ? 'true' : 'false'}
-                    onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) =>
-                      e.key === 'Enter' && handleDotClick(index)
-                    }
-                    style={{ touchAction: 'manipulation' }}
-                  />
-                ))}
+        {/* Middle Block: Video Component */}
+        <div className="w-screen" id="featured-post-media">
+          <img
+            id="featured-post-thumbnail"
+            src={currentThumbnail}
+            alt={typeof currentBlog.title === 'string' ? currentBlog.title : 'Untitled'}
+            className="w-full h-auto max-h-[35vh]"
+          />
+          <Link to={`/blog/${currentBlog.id}`} className="absolute inset-0" id="featured-post-link">
+            <span className="sr-only">Go to blog post</span>
+          </Link>
+          {/* Navigation Dots */}
+          <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center">
+            <div className="flex justify-center w-full sm:w-auto">
+              <div className="p-2 rounded-lg">
+                <div className="flex justify-center items-center gap-2 sm:gap-4">
+                  {blogs.map((_, index) => (
+                    <div
+                      key={index}
+                      id={`dot-${index}`}
+                      className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full cursor-pointer ${
+                        index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}
+                      onClick={() => handleDotClick(index)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Go to featured post ${index + 1} of ${blogs.length}`}
+                      aria-current={index === currentIndex ? 'true' : 'false'}
+                      onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) =>
+                        e.key === 'Enter' && handleDotClick(index)
+                      }
+                      style={{ touchAction: 'manipulation' }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Bottom Block: Metadata Container */}
-      <div className="bg-black bg-opacity-50 p-4" id="featured-post-metadata">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          {/* Left: Author and Metadata */}
-          <div className="flex flex-wrap items-center space-x-2 min-w-0 gap-2" id="featured-post-author-info">
-            <img
-              id="featured-post-author-avatar"
-              src={logoUrls[currentBlog.id] || placeholderLogo}
-              alt={typeof currentBlog.authorName === 'string' ? currentBlog.authorName : 'Author'}
-              className="w-8 h-8 rounded-full flex-shrink-0"
-              onError={() => handleLogoError(currentBlog.id)}
-            />
-            <div className="max-w-fit bg-green-500 rounded p-1" id="featured-post-author-name">
-              {typeof currentBlog.authorName === 'string' ? currentBlog.authorName : 'Unknown Author'}
-            </div>
-            <div className={`max-w-fit ${pathColor} rounded p-1 text-white`} id="featured-post-path-name">
-              {typeof currentBlog.pathId === 'string' ? currentBlog.pathId : 'Unknown Path'}
-            </div>
-            {mediaTag && (
-              <div className={`px-2 py-1 ${mediaColor} rounded text-white flex-shrink-0`} id="featured-post-media-tag">
-                {mediaTag}
+        {/* Bottom Block: Metadata Container */}
+        <div className="bg-black bg-opacity-50 p-4" id="featured-post-metadata">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            {/* Left: Author and Metadata */}
+            <div className="flex flex-wrap items-center space-x-2 min-w-0 gap-2" id="featured-post-author-info">
+              <img
+                id="featured-post-author-avatar"
+                src={logoUrls[currentBlog.id] || placeholderLogo}
+                alt={typeof currentBlog.authorName === 'string' ? currentBlog.authorName : 'Author'}
+                className="w-8 h-8 rounded-full flex-shrink-0"
+                onError={() => handleLogoError(currentBlog.id)}
+              />
+              <div className="max-w-fit bg-green-500 rounded p-1" id="featured-post-author-name">
+                {typeof currentBlog.authorName === 'string' ? currentBlog.authorName : 'Unknown Author'}
               </div>
-            )}
-          </div>
-          {/* Right: Comments, Age-Restricted, and Date */}
-          <div className="flex items-center space-x-4 flex-shrink-0" id="featured-post-engagement">
-            <div className="flex items-center space-x-2">
-              <div className="text-white flex items-center" id="featured-post-comments">
-                <FaComments className="mr-1" />
-                {currentBlog.blogComments?.length || 0}
+              <div className={`max-w-fit ${pathColor} rounded p-1 text-white`} id="featured-post-path-name">
+                {typeof currentBlog.pathId === 'string' ? currentBlog.pathId : 'Unknown Path'}
               </div>
-              {currentBlog.isAgeRestricted && (
-                <div className="text-red-500 ml-2" id="featured-post-age-restriction">18+</div>
+              {mediaTag && (
+                <div className={`px-2 py-1 ${mediaColor} rounded text-white flex-shrink-0`} id="featured-post-media-tag">
+                  {mediaTag}
+                </div>
               )}
             </div>
-            <div className="text-gray-300" id="featured-post-date">
-              {new Date(currentBlog.createdAt).toLocaleDateString()}
+            {/* Right: Comments, Age-Restricted, and Date */}
+            <div className="flex items-center space-x-4 flex-shrink-0" id="featured-post-engagement">
+              <div className="flex items-center space-x-2">
+                <div className="text-white flex items-center" id="featured-post-comments">
+                  <FaComments className="mr-1" />
+                  {currentBlog.blogComments?.length || 0}
+                </div>
+                {currentBlog.isAgeRestricted && (
+                  <div className="text-red-500 ml-2" id="featured-post-age-restriction">18+</div>
+                )}
+              </div>
+              <div className="text-gray-300" id="featured-post-date">
+                {new Date(currentBlog.createdAt).toLocaleDateString()}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 
