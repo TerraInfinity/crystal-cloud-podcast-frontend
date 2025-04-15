@@ -63,11 +63,14 @@ export const normalizeUrl = (url?: string): string | null => {
  * @returns A promise resolving to the thumbnail URL or a default image if unavailable.
  */
 export const fetchThumbnail = async (blog: BlogPost): Promise<string> => {
-  const { videoUrl, blogImage, isAgeRestricted = false, embedUrl, postUrl, id } = blog;
+  const { videoUrl, blogImage, isAgeRestricted = false, embedUrl, postUrl, id, updatedAt } = blog;
+
+  // Create a cache key that includes updatedAt to invalidate cache on changes
+  const cacheKey = updatedAt ? `${id}:${updatedAt}` : id;
 
   // Check if thumbnail is already cached
-  if (thumbnailCache[id]) {
-    return thumbnailCache[id];
+  if (thumbnailCache[cacheKey]) {
+    return thumbnailCache[cacheKey];
   }
 
   const urlToCheck = normalizeUrl(videoUrl) || normalizeUrl(embedUrl) || normalizeUrl(postUrl);
@@ -75,39 +78,37 @@ export const fetchThumbnail = async (blog: BlogPost): Promise<string> => {
   if (urlToCheck) {
     const youtubeId = getYouTubeID(urlToCheck);
     if (youtubeId) {
-      const thumbnailUrl = `https://img.youtube.com/vi/${youtubeId}/0.jpg`;
-      thumbnailCache[id] = thumbnailUrl; // Cache it
+      const thumbnailUrl = updatedAt
+        ? `https://img.youtube.com/vi/${youtubeId}/0.jpg?v=${encodeURIComponent(updatedAt)}`
+        : `https://img.youtube.com/vi/${youtubeId}/0.jpg`;
+      thumbnailCache[cacheKey] = thumbnailUrl;
       return thumbnailUrl;
     } else {
       const apiUrl = `${
         import.meta.env.VITE_VERCEL_ENV === 'true'
           ? import.meta.env.VITE_FRONTEND_URL
           : import.meta.env.VITE_LOCALHOST_URL
-      }/api/proxy-thumbnail?url=${encodeURIComponent(urlToCheck)}`;
+      }/api/proxy-thumbnail?url=${encodeURIComponent(urlToCheck)}${updatedAt ? `&v=${encodeURIComponent(updatedAt)}` : ''}`;
       try {
         const response = await axios.get<{ thumbnail: string }>(apiUrl);
         const thumbnailUrl = response.data.thumbnail || blogImage || getDefaultImage(isAgeRestricted);
-        thumbnailCache[id] = thumbnailUrl; // Cache it
+        thumbnailCache[cacheKey] = thumbnailUrl;
         return thumbnailUrl;
       } catch (error) {
         const errorMessage = (error as Error).message;
-        logGroupedMessage(
-          `Thumbnail Fetch Error for blog ID: ${id}`,
-          errorMessage,
-          'error',
-          true
-        );
+        logGroupedMessage(`Thumbnail Fetch Error for blog ID: ${id}`, errorMessage, 'error', true);
         const fallback = blogImage || getDefaultImage(isAgeRestricted);
-        thumbnailCache[id] = fallback; // Cache the fallback
+        thumbnailCache[cacheKey] = fallback;
         return fallback;
       }
     }
   } else if (blogImage) {
-    thumbnailCache[id] = blogImage; // Cache it
-    return blogImage;
+    const thumbnailUrl = updatedAt ? `${blogImage}?v=${encodeURIComponent(updatedAt)}` : blogImage;
+    thumbnailCache[cacheKey] = thumbnailUrl;
+    return thumbnailUrl;
   } else {
     const defaultImg = getDefaultImage(isAgeRestricted);
-    thumbnailCache[id] = defaultImg; // Cache it
+    thumbnailCache[cacheKey] = defaultImg;
     return defaultImg;
   }
 };

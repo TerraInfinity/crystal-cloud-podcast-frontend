@@ -51,6 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(204).end();
   }
 
+  // Determine if this is a request for /api/proxy-thumbnail
+  const isThumbnailRequest = req.url?.startsWith('/api/proxy-thumbnail');
+
+  // Construct the target URL, preserving query parameters for cache-busting
   const targetUrl = `${backendUrl}${req.url?.replace(/^\/api/, '/api') || ''}`;
   console.log('Target URL:', targetUrl);
 
@@ -70,6 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       url: targetUrl,
       headers: backendHeaders,
       data: req.method !== 'GET' && req.method !== 'HEAD' ? req.body : undefined,
+      responseType: 'arraybuffer', // Handle binary data (e.g., images) correctly
     });
 
     // Log backend response details
@@ -86,15 +91,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 
-    // Pass through all headers from backend
-    res.status(response.status);
-    for (const [key, value] of Object.entries(responseHeaders)) {
-      console.log(`Setting response header: ${key}: ${value}`);
-      res.setHeader(key, value);
+    // If this is a thumbnail request, set cache headers
+    if (isThumbnailRequest) {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
     }
 
-    // Send raw response body
-    res.send(response.data);
+    // Pass through all headers from backend, except Cache-Control if overridden
+    for (const [key, value] of Object.entries(responseHeaders)) {
+      if (key.toLowerCase() !== 'cache-control' || !isThumbnailRequest) {
+        console.log(`Setting response header: ${key}: ${value}`);
+        res.setHeader(key, value);
+      }
+    }
+
+    // Send the raw response body (image data)
+    res.status(response.status).send(Buffer.from(response.data));
   } catch (error) {
     // Detailed error logging
     console.error('Proxy error occurred:', {

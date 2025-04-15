@@ -238,10 +238,10 @@ export const HomePage = () => {
         )}
         {/* Main content */}
         <FeaturedPost
-          id="featured-posts-section"
-          blogs={blogs.filter((blog) => blog.featured)}
-          thumbnails={thumbnails}
-          logoUrls={logoUrls}
+        id="featured-posts-section"
+        blogs={blogs.filter((blog) => blog.featured)}
+        thumbnails={thumbnails}
+        logoUrls={logoUrls}
         />
         <BlogPostGrid id="blog-posts-grid" blogs={blogs} thumbnails={thumbnails} />
       </div>

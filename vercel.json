@@ -2,5 +2,14 @@
     "rewrites": [{
         "source": "/api/(.*)",
         "destination": "/api/proxy"
+    }],
+
+    "headers": [{
+        "source": "/assets/images/(.*)",
+        "headers": [{
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+        }]
     }]
+
 }

@@ -70,7 +70,7 @@ export interface BlogPost {
     createdAt: string;
   
     /** Last updated timestamp of the blog post (ISO string). */
-    updatedAt: string;
+    updatedAt?: string;
   
     /** Optional array of comments associated with the blog post. */
     blogComments?: any[]; // Consider defining a BlogComment interface for type safety
