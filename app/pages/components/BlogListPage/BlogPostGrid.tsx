@@ -49,13 +49,15 @@ const BlogPostGrid = ({ blogs = [] }: BlogPostGridProps) => {
       <h2 className="mb-8 text-2xl text-white" id="latest-posts-title">Latest Posts</h2>
       <div className="grid gap-6 mb-10 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" id="blog-posts-grid">
         {blogs.length > 0 ? (
-          blogs.map((blog) => (
-            <BlogPostCard
-              key={blog.id}
-              blog={blog}
-              data-testid={`blog-post-${blog.id}`}
-            />
-          ))
+          blogs
+            .filter((blog) => blog && typeof blog === 'object' && blog.id && typeof blog.title === 'string')
+            .map((blog) => (
+              <BlogPostCard
+                key={blog.id}
+                blog={blog}
+                data-testid={`blog-post-${blog.id}`}
+              />
+            ))
         ) : (
           <div className="text-white col-span-3" id="no-posts-message">No blog posts available</div>
         )}

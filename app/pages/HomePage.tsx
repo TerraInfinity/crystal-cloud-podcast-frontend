@@ -111,6 +111,22 @@ export const HomePage = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Add logging to inspect the fetched blogs
+  console.log('Fetched blogs:', blogs);
+  
+  // Check for malformed data
+  const invalidBlogs = blogs.filter(blog => !blog || !blog.id || !blog.title);
+  if (invalidBlogs.length > 0) {
+    console.error('Invalid blog entries found:', invalidBlogs);
+  }
+
+  // Check for unique id values
+  const ids = blogs.map(blog => blog.id);
+  const uniqueIds = new Set(ids);
+  if (uniqueIds.size !== ids.length) {
+    console.error('Duplicate blog ids found:', ids);
+  }
+
   // Determine error message for display
   let errorMessage: string | null = null;
   if (error) {
@@ -189,7 +205,7 @@ export const HomePage = () => {
           id="featured-posts-section"
           blogs={blogs.filter((blog) => blog.featured)}
         />
-        <BlogPostGrid id="blog-posts-grid" blogs={blogs} />
+       {/* <BlogPostGrid id="blog-posts-grid" blogs={blogs} /> */}
       </div>
     </Layout>
   );

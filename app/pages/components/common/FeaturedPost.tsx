@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { FaComments } from 'react-icons/fa';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../../types/blog';
 import { checkImageExists } from '../../../utils/imageUtils';
@@ -137,11 +136,13 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   }
 
   const currentBlog = blogs[currentIndex];
-  if (!currentBlog) {
-    logGroupedMessage('FeaturedPost Error', `Current blog is undefined at index: ${currentIndex}`, 'error', true);
+
+  // Top-level validation for currentBlog
+  if (!currentBlog || typeof currentBlog !== 'object' || !currentBlog.id) {
+    console.error('FeaturedPost Error: Invalid currentBlog at index:', currentIndex);
     return (
       <div className="text-center p-4 bg-gray-100 rounded-lg">
-        <p className="text-red-500">Error: Unable to load featured post.</p>
+        <p className="text-red-500">Error: Invalid featured post data.</p>
       </div>
     );
   }
