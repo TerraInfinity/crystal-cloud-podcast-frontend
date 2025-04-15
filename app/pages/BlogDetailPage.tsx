@@ -22,7 +22,7 @@
  * @context {AuthContextType} AuthContext - Provides authentication status and user role.
  */
 import React, { useState, useEffect, useContext, type JSX } from 'react';
-import Layout from './components/common/Layout'; // Assume Layout is typed elsewhere
+import Layout from './components/common/Layout';
 import BlogContent from './components/BlogDetailPage/BlogContent';
 import FeedbackSection from './components/BlogDetailPage/FeedbackSection';
 import { useParams } from 'react-router-dom';
@@ -68,27 +68,19 @@ export function BlogDetailPage(): JSX.Element {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editedBlog, setEditedBlog] = useState<Blog | null>(null);
 
-  const apiPort = process.env.REACT_APP_BACKEND_PORT;
-  const baseAPIUrl = `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
-
   useEffect(() => {
     const fetchBlog = async (): Promise<void> => {
       try {
-        const mode = import.meta.env.VITE_NODE_ENV || 'development';
-        let apiUrl: string;
-
-        if (mode === 'local-development') {
-          apiUrl = `${baseAPIUrl}/api/blogs/${id}`;
-        } else {
-          apiUrl = `/api/blogs/${id}`;
-        }
-
+        const apiUrl = `/api/blogs/${id}`;
+        console.log('Fetching blog from:', apiUrl); // Debug log
         const response = await axios.get<{ data: Blog }>(apiUrl);
+        console.log('Blog response:', response.data); // Debug log
         setBlog(response.data.data);
         setEditedBlog(response.data.data);
         setComments(response.data.data.BlogComments || []);
         document.title = response.data.data.title;
       } catch (e: unknown) {
+        console.error('Error fetching blog:', e);
         setError(e instanceof Error ? e.message : 'Unknown error');
       } finally {
         setLoading(false);
@@ -103,15 +95,7 @@ export function BlogDetailPage(): JSX.Element {
     const fetchUserRole = async (): Promise<void> => {
       console.log('Fetching user role...');
       try {
-        const mode = import.meta.env.VITE_NODE_ENV || 'development';
-        let apiUrl: string;
-
-        if (mode === 'local-development') {
-          apiUrl = `${baseAPIUrl}/api/users/role`;
-        } else {
-          apiUrl = '/api/users/role';
-        }
-
+        const apiUrl = '/api/users/role';
         const response = await axios.get<{ role: string }>(apiUrl, {
           headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
         });
@@ -126,7 +110,7 @@ export function BlogDetailPage(): JSX.Element {
     fetchBlog();
     checkLoginStatus();
     if (isAuthenticated) fetchUserRole();
-  }, [isAuthenticated, id, baseAPIUrl]);
+  }, [isAuthenticated, id]);
 
   useEffect(() => {
     if (blog) {
@@ -143,15 +127,7 @@ export function BlogDetailPage(): JSX.Element {
     if (!editedBlog) return;
 
     try {
-      const mode = import.meta.env.VITE_NODE_ENV || 'development';
-      let apiUrl: string;
-
-      if (mode === 'local-development') {
-        apiUrl = `${baseAPIUrl}/api/blogs/update/${id}`;
-      } else {
-        apiUrl = `/api/blogs/update/${id}`;
-      }
-
+      const apiUrl = `/api/blogs/update/${id}`;
       const response = await axios.put(apiUrl, editedBlog, {
         headers: {
           'Content-Type': 'application/json',
