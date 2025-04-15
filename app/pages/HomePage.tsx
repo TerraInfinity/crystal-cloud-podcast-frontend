@@ -2,12 +2,12 @@
  * app\pages\HomePage.tsx
  * The main home page component that displays featured posts and a grid of blog posts.
  * Fetches blog data and thumbnails from the backend API using React Query.
- * Sorts blogs chronologically (newest first) by "createdAt" and handles NSFW content restrictions.
+ * Handles NSFW content restrictions.
  *
  * @component
  * @returns {JSX.Element} The rendered home page component.
  */
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from './components/common/Layout';
 import FeaturedPost from './components/common/FeaturedPost';
 import BlogPostGrid from './components/BlogListPage/BlogPostGrid';
@@ -94,41 +94,13 @@ export const HomePage = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Sort blogs in descending order by createdAt (newest first) and validate dates
-  const sortedBlogs = useMemo(() => {
-    // Filter out blogs with invalid createdAt dates
-    const validBlogs = blogs.filter(blog => {
-      const date = new Date(blog.createdAt);
-      const isValid = !isNaN(date.getTime());
-      if (!isValid) {
-        console.warn(`Invalid createdAt date for blog ID ${blog.id}: ${blog.createdAt}`);
-      }
-      return isValid;
-    });
-
-    const sorted = [...validBlogs].sort((a, b) => {
-      const dateA = new Date(a.createdAt);
-      const dateB = new Date(b.createdAt);
-      return dateB.getTime() - dateA.getTime(); // Descending order (newest first)
-    });
-
-    // Log sorted order for verification
-    console.log('Sorted blogs by createdAt (newest first):', sorted.map(blog => ({
-      id: blog.id,
-      createdAt: blog.createdAt,
-      title: blog.title
-    })));
-
-    return sorted;
-  }, [blogs]);
-
   // Fetch thumbnails when blogs are loaded
   useEffect(() => {
     const loadThumbnails = async () => {
-      if (sortedBlogs.length > 0) {
+      if (blogs.length > 0) {
         setThumbnailLoading(true);
         try {
-          const fetchedThumbnails = await fetchAllThumbnails(sortedBlogs);
+          const fetchedThumbnails = await fetchAllThumbnails(blogs);
           setThumbnails(fetchedThumbnails);
         } catch (error) {
           console.error('Failed to fetch thumbnails:', error);
@@ -140,16 +112,16 @@ export const HomePage = () => {
       }
     };
     loadThumbnails();
-  }, [sortedBlogs]);
+  }, [blogs]);
 
   // Check for malformed data
-  const invalidBlogs = sortedBlogs.filter(blog => !blog || !blog.id || !blog.title);
+  const invalidBlogs = blogs.filter(blog => !blog || !blog.id || !blog.title);
   if (invalidBlogs.length > 0) {
     console.error('Invalid blog entries found:', invalidBlogs);
   }
 
   // Check for duplicate IDs
-  const ids = sortedBlogs.map(blog => blog.id);
+  const ids = blogs.map(blog => blog.id);
   const uniqueIds = new Set(ids);
   if (uniqueIds.size !== ids.length) {
     console.error('Duplicate blog IDs found:', ids);
@@ -174,8 +146,8 @@ export const HomePage = () => {
   const baseUrl = isVercelEnv ? import.meta.env.VITE_FRONTEND_URL! : import.meta.env.VITE_LOCALHOST_URL!;
   const placeholderLogo = `${baseUrl}/assets/images/logo.png`;
 
-  // Create logoUrls from sorted blogs
-  const logoUrls = sortedBlogs.reduce((acc, blog) => {
+  // Create logoUrls from blogs
+  const logoUrls = blogs.reduce((acc, blog) => {
     acc[blog.id] = blog.authorLogo || placeholderLogo;
     return acc;
   }, {} as Record<string, string>);
@@ -226,14 +198,14 @@ export const HomePage = () => {
         {/* Main content */}
         <FeaturedPost
           id="featured-posts-section"
-          blogs={sortedBlogs.filter((blog) => blog.featured)}
+          blogs={blogs.filter((blog) => blog.featured)}
           thumbnails={thumbnails}
           logoUrls={logoUrls}
           nsfwDisclaimerAccepted={nsfwDisclaimerAccepted}
         />
         <BlogPostGrid
           id="blog-posts-grid"
-          blogs={sortedBlogs}
+          blogs={blogs}
           thumbnails={thumbnails}
           nsfwDisclaimerAccepted={nsfwDisclaimerAccepted}
         />
