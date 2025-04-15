@@ -212,5 +212,5 @@ export const HomePage = () => {
         />
       </div>
     </Layout>
-  );
+  ); 
 };
