@@ -41,8 +41,7 @@ function CommentSection({
   comments,
   blogId,
 }: CommentSectionProps): JSX.Element {
-  console.log("Checking Blog Comments")
-  console.log("Comments: " + comments)
+
   // State to hold the list of comments, ensuring it’s always an array
   const [commentList, setCommentList] = useState<Comment[]>(comments || []);
 
