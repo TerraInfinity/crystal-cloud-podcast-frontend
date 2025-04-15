@@ -52,7 +52,8 @@ function FeedbackSection({ comments, blogId }: FeedbackSectionProps): JSX.Elemen
 
   // Ensure comments is always an array to prevent runtime errors
   const safeComments = Array.isArray(comments) ? comments : [];
-
+  console.log("Checking Blog Comments")
+  console.log("Comments: " + safeComments)
   return (
     <section className="mt-12" id="feedback-section">
       <h2 className="mb-6 text-2xl font-semibold" id="feedback-title">
