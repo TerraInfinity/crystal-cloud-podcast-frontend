@@ -182,6 +182,17 @@ export const HomePage = () => {
     }
   }
 
+  // Define placeholder logo
+  const isVercelEnv = import.meta.env.VITE_VERCEL_ENV === 'true';
+  const baseUrl = isVercelEnv ? import.meta.env.VITE_FRONTEND_URL! : import.meta.env.VITE_LOCALHOST_URL!;
+  const placeholderLogo = `${baseUrl}/assets/images/logo.png`;
+
+  // Create logoUrls from blogs
+  const logoUrls = blogs.reduce((acc, blog) => {
+    acc[blog.id] = blog.authorLogo || placeholderLogo;
+    return acc;
+  }, {} as Record<string, string>);
+
   return (
     <Layout title="The Bambi Cloud Podcast" id="home-page-layout">
       <div id="home-page-content" className="relative">
@@ -230,7 +241,8 @@ export const HomePage = () => {
           id="featured-posts-section"
           blogs={blogs.filter((blog) => blog.featured)}
           thumbnails={thumbnails}
-        /> 
+          logoUrls={logoUrls}
+        />
         <BlogPostGrid id="blog-posts-grid" blogs={blogs} thumbnails={thumbnails} />
       </div>
     </Layout>
