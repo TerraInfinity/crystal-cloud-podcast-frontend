@@ -1,18 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { FaComments } from 'react-icons/fa';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
-import type { BlogPost } from '../../../types/blog'; // Use type-only import for BlogPost
+import type { BlogPost } from '../../../types/blog';
+import { useQueries } from '@tanstack/react-query';
+import { fetchThumbnail, checkImageExists, normalizeUrl, getDefaultImage } from '../../../utils/imageUtils';
+import { logGroupedMessage } from '../../../utils/consoleGroupLogger';
 
-// Utility for grouped logging (assume this exists in your project)
-import { logGroupedMessage } from '../../../utils/consoleGroupLogger'; // Adjust path as needed
-
-/**
- * Interface for FeaturedPost component props.
- */
 interface FeaturedPostProps {
-  id: string;
-  blogs: BlogPost[];
+  blogs?: BlogPost[];
 }
 
 /**
@@ -45,35 +40,9 @@ const getPathColor = (pathId: string): string => {
   }
 };
 
-/**
- * Extracts the YouTube video ID from a given URL.
- */
-const getYouTubeID = (url: string): string | null => {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return match && match[2].length === 11 ? match[2] : null;
-};
-
-/**
- * Checks if an image URL exists using the Image object.
- */
-const checkImageExists = (url: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = url;
-  });
-};
-
-/**
- * FeaturedPost Component
- */
 const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
-  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
-  const [logoUrls, setLogoUrls] = useState<Record<string, string>>({});
 
   // Determine the base URL for placeholderLogo
   const isVercelEnv = import.meta.env.VITE_VERCEL_ENV === 'true';
@@ -88,76 +57,40 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   }
   const placeholderLogo = `${baseUrl}/assets/images/logo.png`;
 
-  // Preload author logos
-  useEffect(() => {
-    const preloadLogos = async () => {
-      const logoPromises = blogs.map(async (blog) => {
-        const normalizedAuthorLogo = blog.authorLogo && !blog.authorLogo.match(/^https?:\/\//)
-          ? `https://${blog.authorLogo}`
-          : blog.authorLogo;
-        if (!normalizedAuthorLogo) {
-          logGroupedMessage(
-            'Author Logo Issues',
-            `No valid author logo for blog "${blog.title}" (ID: ${blog.id}). Using placeholder: ${placeholderLogo}`
-          );
-          return { id: blog.id, logo: placeholderLogo };
-        }
-        const exists = await checkImageExists(normalizedAuthorLogo);
-        if (exists) {
-          return { id: blog.id, logo: normalizedAuthorLogo };
-        } else {
-          logGroupedMessage(
-            'Author Logo Issues',
-            `Logo at "${normalizedAuthorLogo}" not found for blog "${blog.title}" (ID: ${blog.id}). Using placeholder: ${placeholderLogo}`
-          );
-          return { id: blog.id, logo: placeholderLogo };
-        }
-      });
-      const logoResults = await Promise.all(logoPromises);
-      const newLogoUrls = logoResults.reduce((acc, { id, logo }) => {
-        acc[id] = logo;
-        return acc;
-      }, {} as Record<string, string>);
-      setLogoUrls(newLogoUrls);
-    };
-    preloadLogos();
-  }, [blogs, placeholderLogo]);
+  // Fetch thumbnails for all blogs using useQueries
+  const thumbnailQueries = useQueries({
+    queries: blogs.map((blog) => ({
+      queryKey: [
+        'thumbnail',
+        blog.id,
+        blog.videoUrl || '',
+        blog.blogImage || '',
+        blog.embedUrl || '',
+        blog.postUrl || '',
+        blog.isAgeRestricted ? 'true' : 'false',
+      ],
+      queryFn: () => fetchThumbnail(blog),
+      placeholderData: blog.blogImage || getDefaultImage(blog.isAgeRestricted),
+    })),
+  });
 
-  // Fetch thumbnails
-  useEffect(() => {
-    const fetchThumbnails = async () => {
-      const apiUrl = `${import.meta.env.VITE_BACKEND_URL || 'https://backend.terrainfinity.ca'}/api/`;
-      const newThumbnails: Record<string, string> = {};
-      if (!Array.isArray(blogs)) return;
-      for (const blog of blogs) {
-        if (blog.videoUrl) {
-          const youtubeId = getYouTubeID(blog.videoUrl);
-          if (youtubeId) {
-            newThumbnails[blog.id] = `https://img.youtube.com/vi/${youtubeId}/0.jpg`;
-          } else {
-            try {
-              const response = await axios.get<{ thumbnail: string }>(
-                `${apiUrl}proxy-thumbnail?url=${encodeURIComponent(blog.videoUrl)}`
-              );
-              newThumbnails[blog.id] = response.data.thumbnail || blog.blogImage || '';
-            } catch (error) {
-              newThumbnails[blog.id] = blog.blogImage || '';
-            }
-          }
-        } else {
-          newThumbnails[blog.id] = blog.blogImage || '';
-        }
-      }
-      if (JSON.stringify(newThumbnails) !== JSON.stringify(thumbnails)) {
-        setThumbnails(newThumbnails);
-      }
-    };
-    fetchThumbnails();
-  }, [blogs, thumbnails]);
+  // Fetch and validate author logos using useQueries
+  const logoQueries = useQueries({
+    queries: blogs.map((blog) => ({
+      queryKey: ['authorLogo', blog.id, blog.authorLogo],
+      queryFn: async () => {
+        const normalizedLogo = normalizeUrl(blog.authorLogo);
+        if (!normalizedLogo) return placeholderLogo;
+        const exists = await checkImageExists(normalizedLogo);
+        return exists ? normalizedLogo : placeholderLogo;
+      },
+      placeholderData: placeholderLogo,
+    })),
+  });
 
   // Carousel interval
   useEffect(() => {
-    if (blogs.length > 0 && !isPaused) {
+    if (blogs.length > 1 && !isPaused) {
       const interval = setInterval(() => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % blogs.length);
       }, 5000);
@@ -166,14 +99,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   }, [blogs, isPaused]);
 
   // Handle empty or invalid blogs prop
-  if (!Array.isArray(blogs)) {
-    console.warn('FeaturedPost received invalid blogs prop:', blogs);
-    return (
-      <div className="text-center p-4 bg-gray-100 rounded-lg">
-        <p className="text-red-500">Error: Invalid blogs data.</p>
-      </div>
-    );
-  } else if (blogs.length === 0) {
+  if (!Array.isArray(blogs) || blogs.length === 0) {
     return (
       <div className="text-center p-4 bg-gray-100 rounded-lg">
         <p className="text-gray-600">No featured posts available at this time.</p>
@@ -182,14 +108,8 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   }
 
   const currentBlog = blogs[currentIndex];
-  if (!currentBlog) {
-    console.error('Current blog is undefined at index:', currentIndex);
-    return (
-      <div className="text-center p-4 bg-gray-100 rounded-lg">
-        <p className="text-red-500">Error: Unable to load featured post.</p>
-      </div>
-    );
-  }
+  const currentThumbnail = thumbnailQueries[currentIndex]?.data || getDefaultImage(currentBlog.isAgeRestricted);
+  const currentLogo = logoQueries[currentIndex]?.data || placeholderLogo;
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
   const pathColor = getPathColor(currentBlog.pathId || '');
@@ -197,13 +117,6 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   const handleDotClick = (index: number) => {
     setCurrentIndex(index);
     setIsPaused(true);
-  };
-
-  const handleLogoError = (blogId: string) => {
-    setLogoUrls((prev) => ({
-      ...prev,
-      [blogId]: placeholderLogo,
-    }));
   };
 
   return (
@@ -219,13 +132,16 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
         </h2>
       </div>
 
-      {/* Middle Block: Video Component */}
+      {/* Middle Block: Thumbnail */}
       <div className="w-screen" id="featured-post-media">
         <img
           id="featured-post-thumbnail"
-          src={thumbnails[currentBlog.id] || currentBlog.blogImage || ''}
+          src={currentThumbnail}
           alt={currentBlog.title}
           className="w-full h-auto max-h-[35vh]"
+          onError={(e) => {
+            e.currentTarget.src = getDefaultImage(currentBlog.isAgeRestricted);
+          }}
         />
         <Link to={`/blog/${currentBlog.id}`} className="absolute inset-0" id="featured-post-link">
           <span className="sr-only">Go to blog post</span>
@@ -247,9 +163,7 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
                     tabIndex={0}
                     aria-label={`Go to featured post ${index + 1} of ${blogs.length}`}
                     aria-current={index === currentIndex ? 'true' : 'false'}
-                    onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) =>
-                      e.key === 'Enter' && handleDotClick(index)
-                    }
+                    onKeyDown={(e) => e.key === 'Enter' && handleDotClick(index)}
                     style={{ touchAction: 'manipulation' }}
                   />
                 ))}
@@ -266,10 +180,12 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
           <div className="flex flex-wrap items-center space-x-2 min-w-0 gap-2" id="featured-post-author-info">
             <img
               id="featured-post-author-avatar"
-              src={logoUrls[currentBlog.id] || placeholderLogo}
+              src={currentLogo}
               alt={currentBlog.authorName || 'Author'}
               className="w-8 h-8 rounded-full flex-shrink-0"
-              onError={() => handleLogoError(currentBlog.id)}
+              onError={(e) => {
+                e.currentTarget.src = placeholderLogo;
+              }}
             />
             <div className="max-w-fit bg-green-500 rounded p-1" id="featured-post-author-name">
               {currentBlog.authorName || 'Unknown Author'}
