@@ -41,11 +41,11 @@ function CommentSection({
   comments,
   blogId,
 }: CommentSectionProps): JSX.Element {
-  // State to hold the list of comments
+  // State to hold the list of comments, ensuring it’s always an array
   const [commentList, setCommentList] = useState<Comment[]>(comments || []);
 
   useEffect(() => {
-    // Log comments when they are loaded or if no comments are found
+    // Log comments for debugging
     if (!comments || comments.length === 0) {
       console.log('No comment data found in the API response.');
     } else {
@@ -56,11 +56,10 @@ function CommentSection({
   }, [comments]);
 
   const handleNewComment = (newComment: Comment): void => {
-    // Log previous comments and the new comment being added
+    // Log previous and new comments for debugging
     console.log('Previous comments:', commentList);
     console.log('New comment being added:', newComment);
-
-    // Add the new comment to the list (assuming API validation ensures userId)
+    // Append the new comment to the list
     setCommentList((prevComments) => [...prevComments, newComment]);
   };
 
@@ -69,34 +68,38 @@ function CommentSection({
       <h3 className="mb-4 text-xl font-semibold" id="comments-title">
         Comments
       </h3>
-      <ul className="space-y-4" id="comment-list">
-        {commentList.map((comment) => (
-          <li
-            key={comment.id}
-            className="bg-gray-800 p-4 rounded-lg"
-            id={`comment-${comment.id}`}
-          >
-            <div className="flex justify-between items-baseline mb-2">
-              <strong className="text-blue-400">
-                {comment.User?.name || 'Anonymous'}
-              </strong>
-              <span className="text-sm text-gray-400">
-                {comment.date || 'Unknown date'}
-              </span>
-            </div>
-            <p>{comment.content}</p>
-            {comment.rating && comment.rating > 0 && (
-              <p
-                className="text-yellow-400"
-                id={`comment-rating-${comment.id}`}
-              >
-                Rating: {'★'.repeat(comment.rating)}
-                {'☆'.repeat(5 - comment.rating)}
-              </p>
-            )}
-          </li>
-        ))}
-      </ul>
+      {commentList.length === 0 ? (
+        <p className="text-gray-400">No comments yet.</p>
+      ) : (
+        <ul className="space-y-4" id="comment-list">
+          {commentList.map((comment) => (
+            <li
+              key={comment.id}
+              className="bg-gray-800 p-4 rounded-lg"
+              id={`comment-${comment.id}`}
+            >
+              <div className="flex justify-between items-baseline mb-2">
+                <strong className="text-blue-400">
+                  {comment.User?.name || 'Anonymous'}
+                </strong>
+                <span className="text-sm text-gray-400">
+                  {comment.date || 'Unknown date'}
+                </span>
+              </div>
+              <p>{comment.content}</p>
+              {comment.rating && comment.rating > 0 && (
+                <p
+                  className="text-yellow-400"
+                  id={`comment-rating-${comment.id}`}
+                >
+                  Rating: {'★'.repeat(comment.rating)}
+                  {'☆'.repeat(5 - comment.rating)}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
       {isLoggedIn && (
         <CommentForm
           isLoggedIn={isLoggedIn}

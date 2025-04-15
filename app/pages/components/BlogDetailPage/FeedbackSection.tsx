@@ -35,7 +35,6 @@ interface AuthContextType {
 }
 
 interface FeedbackSectionProps {
-  isLoggedIn: boolean;
   comments: Comment[];
   blogId: string;
 }
@@ -48,8 +47,11 @@ interface FeedbackSectionProps {
  * @param {FeedbackSectionProps} props - The properties passed to the component.
  * @returns {JSX.Element} A JSX element representing the feedback section of the blog post.
  */
-function FeedbackSection({ comments, blogId, isLoggedIn }: FeedbackSectionProps): JSX.Element {
+function FeedbackSection({ comments, blogId }: FeedbackSectionProps): JSX.Element {
   const { isAuthenticated } = useContext(AuthContext) as AuthContextType;
+
+  // Ensure comments is always an array to prevent runtime errors
+  const safeComments = Array.isArray(comments) ? comments : [];
 
   return (
     <section className="mt-12" id="feedback-section">
@@ -58,7 +60,7 @@ function FeedbackSection({ comments, blogId, isLoggedIn }: FeedbackSectionProps)
       </h2>
       <CommentSection
         isLoggedIn={isAuthenticated}
-        comments={comments}
+        comments={safeComments}
         blogId={blogId}
       />
       {!isAuthenticated && (

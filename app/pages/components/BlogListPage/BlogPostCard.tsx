@@ -42,7 +42,7 @@ const BlogPostCard = ({ blog, thumbnail, nsfwDisclaimerAccepted }: BlogPostCardP
         <img
           src={safeThumbnailUrl}
           alt="Blog post thumbnail"
-          className={`absolute inset-0 w-full h-full object-fill ${isRestricted ? 'blur-sm' : ''}`}
+          className="absolute inset-0 w-full h-full object-fill"
           id={`blog-post-image-${id}`}
         />
         {isAgeRestricted && (
@@ -50,14 +50,9 @@ const BlogPostCard = ({ blog, thumbnail, nsfwDisclaimerAccepted }: BlogPostCardP
             18+
           </div>
         )}
-        {isRestricted && (
-          <div className="absolute inset-0 flex items-center justify-center text-white text-xl bg-black bg-opacity-50">
-            Age Restricted
-          </div>
-        )}
       </div>
-      <div className={`p-4 ${isRestricted ? 'blur-sm' : ''}`} id={`blog-content-container-${id}`}>
-        <h3 className="text-white text-xl font-semibold mb-2 truncate" id={`blog-title-${id}`}>
+      <div className="p-4" id={`blog-content-container-${id}`}>
+        <h3 className={`text-white text-xl font-semibold mb-2 truncate ${isRestricted ? 'blur-sm' : ''}`} id={`blog-title-${id}`}>
           {typeof title === 'string' ? title : 'Untitled'}
         </h3>
         <div className="flex items-center mb-2" id={`author-info-container-${id}`}>

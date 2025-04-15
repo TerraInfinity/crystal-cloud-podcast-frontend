@@ -77,6 +77,7 @@ export function BlogDetailPage(): JSX.Element {
         console.log('Blog response:', response.data); // Debug log
         setBlog(response.data.data);
         setEditedBlog(response.data.data);
+        // Ensure comments are always an array, even if undefined or empty
         setComments(response.data.data.BlogComments || []);
         document.title = response.data.data.title;
       } catch (e: unknown) {
