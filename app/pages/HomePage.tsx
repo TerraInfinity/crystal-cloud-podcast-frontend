@@ -26,8 +26,9 @@ export const HomePage = () => {
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [thumbnailLoading, setThumbnailLoading] = useState(true);
 
-  // Check NSFW disclaimer acceptance from sessionStorage
-  const nsfwDisclaimerAccepted = sessionStorage.getItem("NSFW-Disclaimer-Accepted") === 'true';
+  // Safely check NSFW disclaimer acceptance (only on client-side)
+  const isClientSide = typeof window !== 'undefined';
+  const nsfwDisclaimerAccepted = isClientSide ? sessionStorage.getItem("NSFW-Disclaimer-Accepted") === 'true' : false;
 
   // Log environment variables for debugging
   console.log('Environment variables:', {
