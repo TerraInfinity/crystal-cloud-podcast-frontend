@@ -61,7 +61,7 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[] }> = ({ blogs = [] }) => {
         blog.isAgeRestricted ? 'true' : 'false',
       ],
       queryFn: () => fetchThumbnail(blog),
-      placeholderData: blog.blogImage, // Use blog.blogImage as placeholder, avoiding defaultImage
+      placeholderData: blog.blogImage, // Use blog.blogImage as placeholder
     })),
   });
 
