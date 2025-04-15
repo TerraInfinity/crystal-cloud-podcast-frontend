@@ -1,20 +1,18 @@
 {
     "rewrites": [{
-            "source": "/api/(.*)",
+            "source": "/api/:path*",
             "destination": "/api/proxy"
         },
         {
-            "source": "/(?!api)(.*)",
+            "source": "/:path*",
             "destination": "/index.html"
         }
     ],
-
     "headers": [{
-        "source": "/assets/images/(.*)",
+        "source": "/assets/images/:path*",
         "headers": [{
             "key": "Cache-Control",
             "value": "public, max-age=86400"
         }]
     }]
-
 }
