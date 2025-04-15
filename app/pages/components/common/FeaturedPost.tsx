@@ -54,10 +54,19 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
     : import.meta.env.VITE_LOCALHOST_URL!;
   if (!baseUrl) throw new Error("baseUrl is undefined.");
 
+  const defaultImage = '/assets/images/consciousness.jpg';
+
   const thumbnailQueries = blogs.map((blog) =>
-    useQuery<string>({
-      queryKey: ['thumbnail', blog.id],
+    useQuery<string | null>({
+      queryKey: [
+        'thumbnail',
+        blog.id,
+        blog.videoUrl || '',
+        blog.blogImage || '',
+        blog.isAgeRestricted ? 'true' : 'false',
+      ],
       queryFn: () => fetchThumbnail(blog),
+      placeholderData: blog.blogImage || defaultImage,
     })
   );
 
@@ -92,7 +101,8 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
 
   const { type: mediaTag, color: mediaColor } = React.useMemo(() => getMediaTag(currentBlog), [currentBlog]);
   const pathColor = React.useMemo(() => getPathColor(currentBlog.pathId || ''), [currentBlog.pathId]);
-  const currentThumbnail = thumbnailQueries[currentIndex]?.data || currentBlog.blogImage || '/assets/images/consciousness.jpg';
+  const thumbnailUrl = thumbnailQueries[currentIndex]?.data;
+  const safeThumbnailUrl = typeof thumbnailUrl === 'string' ? thumbnailUrl : defaultImage;
   const logoUrl = useValidImageUrl(currentBlog.authorLogo, `${baseUrl}/assets/images/logo.png`);
 
   const handleDotClick = (index: number) => {
@@ -115,9 +125,10 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
         <div className="w-screen" id="featured-post-media">
           <img
             id="featured-post-thumbnail"
-            src={currentThumbnail}
+            src={safeThumbnailUrl}
             alt={typeof currentBlog.title === 'string' ? currentBlog.title : 'Untitled'}
             className="w-full h-auto max-h-[35vh]"
+            onError={() => console.log('Featured post image failed to load')}
           />
           <Link to={`/blog/${currentBlog.id}`} className="absolute inset-0" id="featured-post-link">
             <span className="sr-only">Go to blog post</span>
