@@ -27,7 +27,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children }) => {
   return (
     <div className="min-h-screen bg-slate-900 text-white px-4 sm:px-6 lg:px-8">
       <Header />
-      <PageTitle title={title} /> {/* Renders the PageTitle component with the provided title prop */}
+      {/* <PageTitle title={title} />  */}{/* Renders the PageTitle component with the provided title prop */}
       <main id="main-content" className="max-w-full overflow-x-hidden">{children}</main> {/* Main content area, prevents horizontal overflow */}
       <AdBanner />
       <Footer className="max-w-full" /> {/* Renders the Footer component, ensuring it does not exceed full width */}

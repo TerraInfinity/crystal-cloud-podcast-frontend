@@ -49,6 +49,8 @@ function CommentSection({
     // Log comments for debugging
     if (!comments || comments.length === 0) {
       console.log('No comment data found in the API response.');
+    } else if (comments.length === 0) { // check for empty array
+      console.log('Received an empty array for comments.');
     } else {
       console.log('Loaded comments:', JSON.stringify(comments));
     }
