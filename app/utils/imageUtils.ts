@@ -73,8 +73,10 @@ export const fetchThumbnail = async (blog: BlogPost): Promise<string> => {
     return thumbnailCache[cacheKey];
   }
 
-  // If age-restricted, always return NSFW image
-  if (isAgeRestricted) {
+  const nsfwDisclaimerAccepted = sessionStorage.getItem("NSFW-Disclaimer-Accepted") === 'true';
+
+  // If age-restricted and disclaimer not accepted, return NSFW image
+  if (isAgeRestricted && !nsfwDisclaimerAccepted) {
     const nsfwImg = '/assets/images/NSFW.jpg';
     thumbnailCache[cacheKey] = nsfwImg;
     return nsfwImg;

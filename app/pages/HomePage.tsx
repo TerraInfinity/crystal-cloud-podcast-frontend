@@ -11,7 +11,7 @@
  * // Usage of HomePage component
  * <HomePage />
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Layout from './components/common/Layout';
 import FeaturedPost from './components/common/FeaturedPost';
 import BlogPostGrid from './components/BlogListPage/BlogPostGrid';
@@ -116,13 +116,22 @@ export const HomePage = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Sort blogs in descending order by createdAt to show newest first
+  const sortedBlogs = useMemo(() => {
+    return [...blogs].sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
+  }, [blogs]);
+
   // Fetch thumbnails when blogs are loaded
   useEffect(() => {
     const loadThumbnails = async () => {
-      if (blogs.length > 0) {
+      if (sortedBlogs.length > 0) {
         setThumbnailLoading(true);
         try {
-          const fetchedThumbnails = await fetchAllThumbnails(blogs);
+          const fetchedThumbnails = await fetchAllThumbnails(sortedBlogs);
           setThumbnails(fetchedThumbnails);
         } catch (error) {
           console.error('Failed to fetch thumbnails:', error);
@@ -134,19 +143,19 @@ export const HomePage = () => {
       }
     };
     loadThumbnails();
-  }, [blogs]);
+  }, [sortedBlogs]);
 
   // Add logging to inspect the fetched blogs
-  console.log('Fetched blogs:', blogs);
+  console.log('Fetched blogs:', sortedBlogs);
 
   // Check for malformed data
-  const invalidBlogs = blogs.filter(blog => !blog || !blog.id || !blog.title);
+  const invalidBlogs = sortedBlogs.filter(blog => !blog || !blog.id || !blog.title);
   if (invalidBlogs.length > 0) {
     console.error('Invalid blog entries found:', invalidBlogs);
   }
 
   // Check for unique id values
-  const ids = blogs.map(blog => blog.id);
+  const ids = sortedBlogs.map(blog => blog.id);
   const uniqueIds = new Set(ids);
   if (uniqueIds.size !== ids.length) {
     console.error('Duplicate blog ids found:', ids);
@@ -187,8 +196,8 @@ export const HomePage = () => {
   const baseUrl = isVercelEnv ? import.meta.env.VITE_FRONTEND_URL! : import.meta.env.VITE_LOCALHOST_URL!;
   const placeholderLogo = `${baseUrl}/assets/images/logo.png`;
 
-  // Create logoUrls from blogs
-  const logoUrls = blogs.reduce((acc, blog) => {
+  // Create logoUrls from sorted blogs
+  const logoUrls = sortedBlogs.reduce((acc, blog) => {
     acc[blog.id] = blog.authorLogo || placeholderLogo;
     return acc;
   }, {} as Record<string, string>);
@@ -238,12 +247,12 @@ export const HomePage = () => {
         )}
         {/* Main content */}
         <FeaturedPost
-        id="featured-posts-section"
-        blogs={blogs.filter((blog) => blog.featured)}
-        thumbnails={thumbnails}
-        logoUrls={logoUrls}
+          id="featured-posts-section"
+          blogs={sortedBlogs.filter((blog) => blog.featured)}
+          thumbnails={thumbnails}
+          logoUrls={logoUrls}
         />
-        <BlogPostGrid id="blog-posts-grid" blogs={blogs} thumbnails={thumbnails} />
+        <BlogPostGrid id="blog-posts-grid" blogs={sortedBlogs} thumbnails={thumbnails} />
       </div>
     </Layout>
   );

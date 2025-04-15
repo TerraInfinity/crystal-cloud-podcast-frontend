@@ -194,7 +194,9 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails,
                 {currentBlog.blogComments?.length || 0}
               </div>
               {currentBlog.isAgeRestricted && (
-                <div className="text-red-500 ml-2" id="featured-post-age-restriction">18+</div>
+                <div className="flex items-center justify-center w-8 h-8 bg-black rounded-full text-red-500 ml-2" id="featured-post-age-restriction">
+                  18+
+                </div>
               )}
             </div>
             <div className="text-gray-300" id="featured-post-date">

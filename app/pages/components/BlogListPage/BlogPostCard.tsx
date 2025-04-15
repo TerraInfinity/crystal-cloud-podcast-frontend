@@ -57,7 +57,7 @@ const BlogPostCard = ({ blog, thumbnail }: { blog: BlogPost; thumbnail: string }
           />
         )}
         {isAgeRestricted && (
-          <div className="absolute top-4 right-4 text-red-500" id={`age-restricted-label-${id}`}>
+          <div className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 bg-black rounded-full text-red-500" id={`age-restricted-label-${id}`}>
             18+
           </div>
         )}

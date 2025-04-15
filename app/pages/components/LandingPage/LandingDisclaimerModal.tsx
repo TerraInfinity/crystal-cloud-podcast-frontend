@@ -88,7 +88,10 @@ const LandingDisclaimerModal = ({
             <button
               id="continue-restricted-button"
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
-              onClick={onDecline}
+              onClick={() => {
+                sessionStorage.setItem("NSFW-Disclaimer-Accepted", "false");
+                onDecline();
+              }}
               aria-label="Continue with restrictions (SFW)"
               style={{ fontSize: '1rem' }}
             >
@@ -97,7 +100,10 @@ const LandingDisclaimerModal = ({
             <button
               id="accept-disclaimer-button"
               className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-              onClick={onAccept}
+              onClick={() => {
+                sessionStorage.setItem("NSFW-Disclaimer-Accepted", "true");
+                onAccept();
+              }}
               aria-label="Accept disclaimer (NSFW)"
               style={{ fontSize: '1rem' }}
             >
