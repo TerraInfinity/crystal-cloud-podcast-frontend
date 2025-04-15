@@ -3,12 +3,8 @@ import { FaComments } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../../types/blog';
 import { useQueries } from '@tanstack/react-query';
-import { fetchThumbnail, checkImageExists, normalizeUrl, getDefaultImage } from '../../../utils/imageUtils';
-import { logGroupedMessage } from '../../../utils/consoleGroupLogger';
-
-interface FeaturedPostProps {
-  blogs?: BlogPost[];
-}
+import { fetchThumbnail } from '../../../utils/imageUtils';
+import { useValidImageUrl } from '../../../hooks/useValidImageUrl';
 
 /**
  * Determines the media type and color based on the blog's video and audio URLs.
@@ -40,22 +36,17 @@ const getPathColor = (pathId: string): string => {
   }
 };
 
-const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
+const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [], id }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
-  // Determine the base URL for placeholderLogo
-  const isVercelEnv = import.meta.env.VITE_VERCEL_ENV === 'true';
-  let baseUrl: string;
-  if (isVercelEnv) {
-    baseUrl = import.meta.env.VITE_FRONTEND_URL!;
-  } else {
-    baseUrl = import.meta.env.VITE_LOCALHOST_URL!;
-  }
-  if (!baseUrl) {
-    throw new Error("baseUrl is undefined. Ensure URL environment variables are set.");
-  }
-  const placeholderLogo = `${baseUrl}/assets/images/logo.png`;
+  // Define placeholderLogo locally
+  const placeholderLogo = '/assets/images/logo.png';
+
+  // Reset currentIndex when blogs change
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [blogs]);
 
   // Fetch thumbnails for all blogs using useQueries
   const thumbnailQueries = useQueries({
@@ -70,23 +61,14 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
         blog.isAgeRestricted ? 'true' : 'false',
       ],
       queryFn: () => fetchThumbnail(blog),
-      placeholderData: blog.blogImage || getDefaultImage(blog.isAgeRestricted),
+      placeholderData: blog.blogImage, // Use blog.blogImage as placeholder, avoiding defaultImage
     })),
   });
 
-  // Fetch and validate author logos using useQueries
-  const logoQueries = useQueries({
-    queries: blogs.map((blog) => ({
-      queryKey: ['authorLogo', blog.id, blog.authorLogo],
-      queryFn: async () => {
-        const normalizedLogo = normalizeUrl(blog.authorLogo);
-        if (!normalizedLogo) return placeholderLogo;
-        const exists = await checkImageExists(normalizedLogo);
-        return exists ? normalizedLogo : placeholderLogo;
-      },
-      placeholderData: placeholderLogo,
-    })),
-  });
+  // Use useValidImageUrl for each blog's author logo
+  const logoUrls = blogs.map((blog) =>
+    useValidImageUrl(blog.authorLogo, placeholderLogo)
+  );
 
   // Carousel interval
   useEffect(() => {
@@ -108,8 +90,8 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
   }
 
   const currentBlog = blogs[currentIndex];
-  const currentThumbnail = thumbnailQueries[currentIndex]?.data || getDefaultImage(currentBlog.isAgeRestricted);
-  const currentLogo = logoQueries[currentIndex]?.data || placeholderLogo;
+  const currentThumbnail = thumbnailQueries[currentIndex]?.data || placeholderLogo; // Fallback to placeholderLogo if query unresolved
+  const currentLogo = logoUrls[currentIndex];
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
   const pathColor = getPathColor(currentBlog.pathId || '');
@@ -126,7 +108,10 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
         <h2 className="text-3xl font-semibold" id="featured-post-title">
           {currentBlog.title}
           <span className="text-gray-300"> - </span>
-          <span className="text-gray-400 text-sm max-w-xs truncate" id="featured-post-summary">
+          <span
+            className="text-gray-400 text-sm max-w-xs truncate"
+            id="featured-post-summary"
+          >
             {currentBlog.blogSummary}
           </span>
         </h2>
@@ -139,11 +124,12 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
           src={currentThumbnail}
           alt={currentBlog.title}
           className="w-full h-auto max-h-[35vh]"
-          onError={(e) => {
-            e.currentTarget.src = getDefaultImage(currentBlog.isAgeRestricted);
-          }}
         />
-        <Link to={`/blog/${currentBlog.id}`} className="absolute inset-0" id="featured-post-link">
+        <Link
+          to={`/blog/${currentBlog.id}`}
+          className="absolute inset-0"
+          id="featured-post-link"
+        >
           <span className="sr-only">Go to blog post</span>
         </Link>
         {/* Navigation Dots */}
@@ -177,7 +163,10 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
       <div className="bg-black bg-opacity-50 p-4" id="featured-post-metadata">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           {/* Left: Author and Metadata */}
-          <div className="flex flex-wrap items-center space-x-2 min-w-0 gap-2" id="featured-post-author-info">
+          <div
+            className="flex flex-wrap items-center space-x-2 min-w-0 gap-2"
+            id="featured-post-author-info"
+          >
             <img
               id="featured-post-author-avatar"
               src={currentLogo}
@@ -187,27 +176,47 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
                 e.currentTarget.src = placeholderLogo;
               }}
             />
-            <div className="max-w-fit bg-green-500 rounded p-1" id="featured-post-author-name">
+            <div
+              className="bg-green-500 rounded p-1"
+              id="featured-post-author-name"
+            >
               {currentBlog.authorName || 'Unknown Author'}
             </div>
-            <div className={`max-w-fit ${pathColor} rounded p-1 text-white`} id="featured-post-path-name">
+            <div
+              className={`${pathColor} rounded p-1 text-white`}
+              id="featured-post-path-name"
+            >
               {currentBlog.pathId || 'Unknown Path'}
             </div>
             {mediaTag && (
-              <div className={`px-2 py-1 ${mediaColor} rounded text-white flex-shrink-0`} id="featured-post-media-tag">
+              <div
+                className={`px-2 py-1 ${mediaColor} rounded text-white flex-shrink-0`}
+                id="featured-post-media-tag"
+              >
                 {mediaTag}
               </div>
             )}
           </div>
           {/* Right: Comments, Age-Restricted, and Date */}
-          <div className="flex items-center space-x-4 flex-shrink-0" id="featured-post-engagement">
+          <div
+            className="flex items-center space-x-4 flex-shrink-0"
+            id="featured-post-engagement"
+          >
             <div className="flex items-center space-x-2">
-              <div className="text-white flex items-center" id="featured-post-comments">
+              <div
+                className="text-white flex items-center"
+                id="featured-post-comments"
+              >
                 <FaComments className="mr-1" />
                 {currentBlog.blogComments?.length || 0}
               </div>
               {currentBlog.isAgeRestricted && (
-                <div className="text-red-500 ml-2" id="featured-post-age-restriction">18+</div>
+                <div
+                  className="text-red-500 ml-2"
+                  id="featured-post-age-restriction"
+                >
+                  18+
+                </div>
               )}
             </div>
             <div className="text-gray-300" id="featured-post-date">
