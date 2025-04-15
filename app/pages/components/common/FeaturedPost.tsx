@@ -2,9 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { FaComments } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../../../types/blog';
-import { useQuery } from '@tanstack/react-query';
-import { fetchThumbnail } from '../../../utils/imageUtils';
-import { useValidImageUrl } from '../../../hooks/useValidImageUrl';
+import { getDefaultImage } from '../../../utils/imageUtils';
+
+/**
+ * Interface for FeaturedPost component props.
+ */
+interface FeaturedPostProps {
+  id: string;
+  blogs: BlogPost[];
+  thumbnails: Record<string, string>; // blogId -> thumbnailUrl
+  logoUrls: Record<string, string>; // blogId -> logoUrl
+}
 
 /**
  * Determines the media type and color based on the blog's video and audio URLs.
@@ -36,51 +44,25 @@ const getPathColor = (pathId: string): string => {
   }
 };
 
-const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [], id }) => {
+/**
+ * FeaturedPost Component
+ */
+const FeaturedPost: React.FC<FeaturedPostProps> = ({ id, blogs = [], thumbnails, logoUrls }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
-  // Define placeholderLogo locally
-  const placeholderLogo = '/assets/images/logo.png';
-
-  // Reset currentIndex when blogs change
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [blogs]);
-
-  // Handle empty or invalid blogs prop
-  if (!Array.isArray(blogs) || blogs.length === 0) {
-    return (
-      <div className="text-center p-4 bg-gray-100 rounded-lg">
-        <p className="text-gray-600">No featured posts available at this time.</p>
-      </div>
-    );
+  // Determine the base URL for placeholderLogo
+  const isVercelEnv = import.meta.env.VITE_VERCEL_ENV === 'true';
+  let baseUrl: string;
+  if (isVercelEnv) {
+    baseUrl = import.meta.env.VITE_FRONTEND_URL!;
+  } else {
+    baseUrl = import.meta.env.VITE_LOCALHOST_URL!;
   }
-
-  // Safeguard currentIndex
-  const safeIndex = Math.min(currentIndex, blogs.length - 1);
-  const currentBlog = blogs[safeIndex];
-
-  // Define defaultImage for the current blog
-  const defaultImage = currentBlog.isAgeRestricted ? '/assets/images/NSFW.jpg' : '/assets/images/consciousness.jpg';
-
-  // Fetch thumbnail for the current blog using useQuery
-  const { data: thumbnailUrl } = useQuery<string | null>({
-    queryKey: [
-      'thumbnail',
-      currentBlog.id,
-      currentBlog.videoUrl || '',
-      currentBlog.blogImage || '',
-      currentBlog.embedUrl || '',
-      currentBlog.postUrl || '',
-      currentBlog.isAgeRestricted ? 'true' : 'false',
-    ],
-    queryFn: () => fetchThumbnail(currentBlog),
-    placeholderData: currentBlog.blogImage || defaultImage,
-  });
-
-  // Use useValidImageUrl for the current blog's author logo
-  const logoUrl = useValidImageUrl(currentBlog.authorLogo, placeholderLogo);
+  if (!baseUrl) {
+    throw new Error("baseUrl is undefined. Ensure URL environment variables are set.");
+  }
+  const placeholderLogo = `${baseUrl}/assets/images/logo.png`;
 
   // Carousel interval
   useEffect(() => {
@@ -92,11 +74,35 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
     }
   }, [blogs, isPaused]);
 
-  // Ensure thumbnailUrl is a string
-  const safeThumbnailUrl = typeof thumbnailUrl === 'string' ? thumbnailUrl : defaultImage;
+  // Handle empty or invalid blogs prop
+  if (!Array.isArray(blogs)) {
+    console.warn('FeaturedPost received invalid blogs prop:', blogs);
+    return (
+      <div className="text-center p-4 bg-gray-100 rounded-lg">
+        <p className="text-red-500">Error: Invalid blogs data.</p>
+      </div>
+    );
+  } else if (blogs.length === 0) {
+    return (
+      <div className="text-center p-4 bg-gray-100 rounded-lg">
+        <p className="text-gray-600">No featured posts available at this time.</p>
+      </div>
+    );
+  }
+
+  const currentBlog = blogs[currentIndex];
+  if (!currentBlog) {
+    console.error('Current blog is undefined at index:', currentIndex);
+    return (
+      <div className="text-center p-4 bg-gray-100 rounded-lg">
+        <p className="text-red-500">Error: Unable to load featured post.</p>
+      </div>
+    );
+  }
 
   const { type: mediaTag, color: mediaColor } = getMediaTag(currentBlog);
   const pathColor = getPathColor(currentBlog.pathId || '');
+  const safeThumbnailUrl = thumbnails[currentBlog.id] || currentBlog.blogImage || getDefaultImage(currentBlog.isAgeRestricted);
 
   const handleDotClick = (index: number) => {
     setCurrentIndex(index);
@@ -104,7 +110,7 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
   };
 
   return (
-    <div className="relative mb-10" id="featured-post-container">
+    <div className="relative mb-10" id={id}>
       {/* Top Block: Blog Title and Summary */}
       <div className="p-4 bg-gray-800 text-white" id="featured-post-header">
         <h2 className="text-3xl font-semibold" id="featured-post-title">
@@ -137,13 +143,13 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
                     key={index}
                     id={`dot-${index}`}
                     className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full cursor-pointer ${
-                      index === safeIndex ? 'bg-blue-500' : 'bg-gray-300'
+                      index === currentIndex ? 'bg-blue-500' : 'bg-gray-300'
                     }`}
                     onClick={() => handleDotClick(index)}
                     role="button"
                     tabIndex={0}
                     aria-label={`Go to featured post ${index + 1} of ${blogs.length}`}
-                    aria-current={index === safeIndex ? 'true' : 'false'}
+                    aria-current={index === currentIndex ? 'true' : 'false'}
                     onKeyDown={(e) => e.key === 'Enter' && handleDotClick(index)}
                     style={{ touchAction: 'manipulation' }}
                   />
@@ -161,17 +167,17 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
           <div className="flex flex-wrap items-center space-x-2 min-w-0 gap-2" id="featured-post-author-info">
             <img
               id="featured-post-author-avatar"
-              src={logoUrl}
+              src={logoUrls[currentBlog.id] || placeholderLogo}
               alt={currentBlog.authorName || 'Author'}
               className="w-8 h-8 rounded-full flex-shrink-0"
               onError={(e) => {
                 e.currentTarget.src = placeholderLogo;
               }}
             />
-            <div className="bg-green-500 rounded p-1" id="featured-post-author-name">
+            <div className="max-w-fit bg-green-500 rounded p-1" id="featured-post-author-name">
               {currentBlog.authorName || 'Unknown Author'}
             </div>
-            <div className={`${pathColor} rounded p-1 text-white`} id="featured-post-path-name">
+            <div className={`max-w-fit ${pathColor} rounded p-1 text-white`} id="featured-post-path-name">
               {currentBlog.pathId || 'Unknown Path'}
             </div>
             {mediaTag && (
@@ -188,9 +194,7 @@ const FeaturedPost: React.FC<{ blogs?: BlogPost[]; id?: string }> = ({ blogs = [
                 {currentBlog.blogComments?.length || 0}
               </div>
               {currentBlog.isAgeRestricted && (
-                <div className="text-red-500 ml-2" id="featured-post-age-restriction">
-                  18+
-                </div>
+                <div className="text-red-500 ml-2" id="featured-post-age-restriction">18+</div>
               )}
             </div>
             <div className="text-gray-300" id="featured-post-date">
