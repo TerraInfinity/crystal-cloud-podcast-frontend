@@ -73,6 +73,13 @@ export const fetchThumbnail = async (blog: BlogPost): Promise<string> => {
     return thumbnailCache[cacheKey];
   }
 
+  // If age-restricted, always return NSFW image
+  if (isAgeRestricted) {
+    const nsfwImg = '/assets/images/NSFW.jpg';
+    thumbnailCache[cacheKey] = nsfwImg;
+    return nsfwImg;
+  }
+
   const urlToCheck = normalizeUrl(videoUrl) || normalizeUrl(embedUrl) || normalizeUrl(postUrl);
 
   if (urlToCheck) {
