@@ -74,8 +74,8 @@ export const LandingPage = (): JSX.Element => {
             onAccept={handleAccept} 
             onDeny={handleDeny} 
             onClose={() => {
-              console.log("Closing disclaimer modal...");
-              setDisclaimerOpen(false);
+              console.log("Closing disclaimer modal and redirecting to YouTube...");
+              window.location.href = "https://www.youtube.com/watch?v=oCrhTU9HkVQ"; // Redirect to YouTube
             }} 
           />
         )}
