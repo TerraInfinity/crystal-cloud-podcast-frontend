@@ -19,7 +19,6 @@ interface LandingDisclaimerModalProps {
   onAccept: () => void;
   onDecline: () => void;
   onLearnMore: () => void;
-  isButtonDisabled: boolean;
 }
 
 const LandingDisclaimerModal = ({
@@ -29,7 +28,6 @@ const LandingDisclaimerModal = ({
   onAccept,
   onDecline,
   onLearnMore,
-  isButtonDisabled,
 }: LandingDisclaimerModalProps): JSX.Element => {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -101,14 +99,10 @@ const LandingDisclaimerModal = ({
             </button>
             <button
               id="accept-disclaimer-button"
-              className={`w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => {
-                sessionStorage.setItem("NSFW-Disclaimer-Accepted", "true");
-                onAccept();
-              }}
+              className="w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-lg opacity-50 cursor-not-allowed"
               aria-label="Accept disclaimer (NSFW)"
               style={{ fontSize: '1rem' }}
-              disabled={isButtonDisabled}
+              disabled={true}
             >
               Accept (NSFW)
             </button>
