@@ -7,6 +7,7 @@ import { logGroupedMessage } from '../../../utils/consoleGroupLogger';
 import { useQuery } from '@tanstack/react-query';
 import { fetchThumbnail } from '../../../utils/imageUtils';
 import { ErrorBoundary } from 'react-error-boundary';
+import PropTypes from 'prop-types';
 
 /**
  * Interface for FeaturedPost component props.
@@ -281,6 +282,27 @@ const FeaturedPost: React.FC<FeaturedPostProps> = ({ blogs = [] }) => {
       </div>
     </ErrorBoundary>
   );
+};
+
+// Add PropTypes for runtime validation
+FeaturedPost.propTypes = {
+  id: PropTypes.string.isRequired,
+  blogs: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      title: PropTypes.string.isRequired,
+      blogSummary: PropTypes.string.isRequired,
+      authorName: PropTypes.string,
+      createdAt: PropTypes.string,
+      blogImage: PropTypes.string,
+      videoUrl: PropTypes.string,
+      audioUrl: PropTypes.string,
+      pathId: PropTypes.string,
+      blogComments: PropTypes.array,
+      isAgeRestricted: PropTypes.bool,
+      authorLogo: PropTypes.string,
+    }).isRequired
+  ).isRequired,
 };
 
 export default FeaturedPost;
