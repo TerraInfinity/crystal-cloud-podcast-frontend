@@ -4,7 +4,7 @@ import { LoginPage } from "../pages/LoginPage";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Crystal Cloud Podcast },
+    { title: "Crystal Cloud Podcast" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }
