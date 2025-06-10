@@ -20,7 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, id }) => {
     <>
       <Helmet>
         <title>{title}</title>
-        <meta name="description" content="Welcome to Crystal Cloud Podcast" />
+        <meta name="description" content="Ethical Cyber Bimbo Brainwashing and Yogic Gamification Wisdumb Experiences." />
         <meta property="og:title" content={title} />
         <meta property="og:description" content="Ethical Cyber Bimbo Brainwashing and Yogic Gamification Wisdumb Experiences." />
         <meta property="og:image" content="https://crystalcloudpodcast.terrainfinity.ca/assets/images/logo.png" />
