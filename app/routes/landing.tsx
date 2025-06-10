@@ -4,7 +4,7 @@ import { LandingPage } from "../pages/LandingPage";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
+    { title: "Crystal Cloud Podcast" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }

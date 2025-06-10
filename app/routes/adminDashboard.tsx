@@ -4,7 +4,7 @@ import { AdminDashboardPage } from "../pages/AdminDashboardPage";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
+    { title: "Crystal Cloud Podcast" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }
