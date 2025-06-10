@@ -31,7 +31,7 @@ const Header: React.FC = () => {
     <header className="bg-slate-900 text-white sticky top-0 z-50">
       <div className="flex justify-between items-center px-20 py-5 max-md:px-10 max-sm:p-5">
         <Link to="/Home" className="text-2xl font-semibold" id="header-title">
-          The Bambi Cloud Podcast
+           Crystal Cloud Podcast
         </Link>
         <div className="flex items-center gap-4">
           <div className="hidden md:block">

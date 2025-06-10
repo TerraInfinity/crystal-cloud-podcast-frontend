@@ -154,7 +154,7 @@ export const HomePage = () => {
   }, {} as Record<string, string>);
 
   return (
-    <Layout title="The Bambi Cloud Podcast" id="home-page-layout">
+    <Layout title="Crystal Cloud Podcast" id="home-page-layout">
       <div id="home-page-content" className="relative">
         {/* Loading overlay */}
         {(isLoading || thumbnailLoading) && (
